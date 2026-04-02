@@ -1,9 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database";
 
-// Note: Database generic will be added after running `supabase gen types typescript`
-// For now, use untyped client and add explicit return types on each query function
-
-let clientInstance: ReturnType<typeof createBrowserClient> | null = null;
+let clientInstance: ReturnType<typeof createBrowserClient<Database>> | null = null;
 
 export function createClient() {
   // During build-time prerendering, env vars may not be available.
@@ -19,7 +17,7 @@ export function createClient() {
   }
 
   if (!clientInstance) {
-    clientInstance = createBrowserClient(url, key);
+    clientInstance = createBrowserClient<Database>(url, key);
   }
   return clientInstance;
 }
