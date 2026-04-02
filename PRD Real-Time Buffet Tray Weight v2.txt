@@ -1,0 +1,304 @@
+# PRD: Real-Time Buffet Tray Weight Monitoring System
+**Version:** 2.0  
+**Last Updated:** 1 April 2026  
+**Status:** Ready for MVP Development
+
+---
+
+## 1. Problem Statement
+
+Buffet kitchens need to decide in real time how much food to refill and when to start cooking the next batch. Today, chefs rely on experience, visual estimation, and rough pax forecasts, which leads to overcooking, stock-outs, and avoidable food waste.
+
+The problem affects buffet chefs, kitchen managers, F&B managers, and procurement teams in hotels and restaurants running live buffet service. Tray levels are not measured precisely, refill timing is reactive, and historical demand data is not operationalized.
+
+Success means the system can show live tray levels, alert chefs before a tray runs too low, recommend how much to cook next, and store historical usage data for better forecasting and procurement planning. v1 should reduce overproduction without disrupting existing kitchen workflow.
+
+---
+
+## 2. MVP Scope Decisions (From Team Discussion)
+
+These decisions were locked in team discussion on 1 April 2026 and directly shape the MVP build.
+
+| Question | Decision |
+|---|---|
+| Number of trays in MVP | 1 tray, 1 dish |
+| Target for full product | 20 to 30 dishes across a full buffet line |
+| Sensor setup | Kitchen staff via an in-app guided flow (no external technician required) |
+| Recalibration trigger | On every layout change (dish moved to a different tray or station), not on a fixed schedule |
+| Tray removed for washing | Flag tray as Offline. Pause all alerts for that tray. |
+| Dashboard latency | 10-second update lag is acceptable |
+| Primary display device | Wall-mounted screen (MVP: laptop). Future: wall-mounted screen as default. |
+| UI design requirement | Large, high-contrast text and status indicators for visibility at kitchen distance |
+| Dish across multiple trays | Out of scope for MVP. Each tray maps to exactly one unique dish. |
+| Historical data | None exists. MVP will use generated mock data with realistic hotel demand patterns including holiday and school holiday spikes. |
+| System ownership post-deployment | Kitchen Manager handles day-to-day. Developer team handles bugs and technical errors on-call. |
+| Technical skill of end user | Non-technical. System must be operable without IT knowledge. |
+
+---
+
+## 3. Users and Roles
+
+### Chef
+- Views live tray status, alerts, and refill suggestions on the dashboard.
+- Receives recommended batch size and cook timing.
+- Cannot change configuration settings.
+
+### Kitchen Manager
+- Configures dishes, tray mappings, tare weights, full tray weights, batch sizes, and alert thresholds.
+- Performs sensor recalibration via guided in-app flow whenever buffet layout changes.
+- Reviews analytics and historical performance.
+- Uploads historical or mock data via CSV.
+- Primary system owner post-deployment.
+
+### Procurement Officer
+- Views ingredient demand forecasts and shopping list outputs.
+- Downloads procurement reports as PDF or CSV.
+
+### F&B Director / Manager
+- Views waste reduction, cost savings, and operational analytics.
+- Monitors trends by dish, event, daypart, and occupancy.
+
+---
+
+## 4. System Architecture
+
+### Four Layers
+
+1. **Sensor layer** - Load cell under each tray sends real-time weight readings.
+2. **Application layer** - Chef dashboard and admin panels showing tray status, alerts, predictions, and configuration.
+3. **Database layer** - Stores tray telemetry, dish settings, guest counts, refill events, historical usage, and procurement data.
+4. **Integration layer** - Manual guest count input in v1. Future: optional PMS integration (Opera, Mews).
+
+### Communication Protocol
+To be decided before build. Options: MQTT (recommended for low-latency IoT), HTTP polling, or WebSocket. This decision affects offline behavior and sensor-to-dashboard latency. **Must be resolved before sprint 1.**
+
+### Data Retention Policy
+Raw sensor readings at 1 to 5 second intervals across many trays generate large volumes. Define before build:
+- How long raw readings are retained (suggested: 30 days raw, indefinite aggregated summaries).
+- Storage backend must support time-series data efficiently.
+
+---
+
+## 5. Core Features
+
+### 5.1 Sensor Layer
+
+**What it does:** Measures total tray weight continuously and converts it to food remaining percentage.
+
+**Inputs:** Current tray weight, stored tare weight, stored full tray weight, dish ID, tray ID.
+
+**Outputs:** Net food weight, percentage remaining, timestamped readings, refill event detection.
+
+**Rules:**
+- Food weight = total weight minus tare weight.
+- Remaining % = food weight / full tray weight x 100.
+- If weight rises above a defined refill delta threshold, log a refill event rather than resetting the tray counter.
+- Each tray holds its own calibration values independently.
+
+**Edge cases:**
+- Sensor disconnects or returns invalid readings: show last known value with Stale Data label.
+- Tray removed for washing: flag as Offline, pause all alerts.
+- Multiple small top-ups instead of one full refill: detect using cumulative delta over a rolling window, not a single-spike check.
+- Weight spikes from chef placing hands on tray during refill: apply a debounce filter (e.g. ignore spikes under 3 seconds).
+- Empty tray on service start: handled via tare weight configuration.
+
+**Open question:** What is the acceptable sensor accuracy tolerance in grams? (e.g. +/- 50g?)
+
+### 5.2 Dish and Tray Configuration
+
+**What it does:** Lets the Kitchen Manager define dish-specific settings once, then reuses them per service.
+
+**Key addition from team discussion:** The Kitchen Manager must be able to reassign which physical sensor maps to which dish when the buffet layout changes. This replaces the need for a technician and is the primary recalibration workflow.
+
+**Inputs:** Dish name, full tray weight, tare weight, batch size, cook-trigger percentage, refill margin, dish type, average cooking time.
+
+**Rules:**
+- Full tray weight is defined once per dish-tray pairing.
+- Kitchen Manager can change the sensor-to-dish mapping without rebuilding the configuration.
+- Config values editable by Kitchen Manager only.
+- Recalibration is triggered by layout changes, not on a fixed schedule.
+
+**Edge cases:**
+- New dish added with no historical data: use defaults, flag low-confidence.
+- Dish marked as ready-to-serve (no cooking required): suppress cook suggestions.
+
+### 5.3 Chef Dashboard
+
+**What it does:** Shows live tray levels, alerts, refill suggestions, and tray status.
+
+**Display requirements (wall-mounted screen):**
+- Large status labels visible from several metres away.
+- High contrast colour coding: green (Healthy), amber (Low), red (Critical), grey (Offline).
+- Each tray card shows: dish name, current percentage, kg remaining, trend arrow, estimated minutes to empty.
+- All trays in a single view, sorted by urgency.
+- Dashboard refreshes every 10 seconds.
+
+**Alert prioritization:** When multiple trays trigger alerts simultaneously, sort by most critical first. Do not show all alerts as equal-priority notifications. Consider a single summary banner with count, not individual popups per tray.
+
+**Offline / stale data behavior:**
+- If sensor disconnects: display last known value with Stale Data label and timestamp.
+- If internet is lost: local device continues collecting readings and syncs on reconnect.
+
+### 5.4 Guest Count Input
+
+**What it does:** Collects expected and actual guest counts to contextualize demand forecasting.
+
+**v1 method:** Manual entry only.
+
+**Inputs:** Event name, date, event type, expected guest count, actual guest count, service duration.
+
+**Rules:**
+- Before service: use expected count.
+- During service: staff can update with actual count. Actual count overrides expected for all predictions.
+
+### 5.5 Predictive Cook Suggestion Engine
+
+**What it does:** Estimates how much food to cook next based on live depletion rate and historical patterns.
+
+**Inputs:** Consumption rate (kg/min from weight drop over time), dish popularity score, guest count, time of day, dish type, remaining service time, historical refills and prior events.
+
+**Outputs:** Suggested batch size, cook-now or cook-later action, estimated time to depletion, confidence label.
+
+**Rules:**
+- Start with a rules-based engine. No ML required in v1.
+- Consumption rate = weight drop over a rolling time window.
+- Popular dishes get a higher demand factor applied.
+- Peak-time meals get a larger buffer.
+- One-day anomalies must not overwrite long-term trend patterns.
+
+**Mock data note:** Because there is no real historical data, MVP will use generated mock data reflecting hotel buffet demand patterns including weekday baselines, weekend uplifts, public holiday spikes, school holiday increases, and year-end travel peaks. This mock data should be seeded into the database before the MVP demo.
+
+### 5.6 Procurement Suggestion Module
+
+**What it does:** Estimates ingredient demand for future service periods and produces a shopping list.
+
+**Inputs:** Forecasted dish demand, recipe-to-ingredient mapping, historical consumption, guest counts, event type.
+
+**Outputs:** Suggested ingredient quantities, shopping list, PDF and CSV export, in-app summary.
+
+**Rules:**
+- Predicts required quantity only. Does not track current inventory in v1.
+- Accuracy improves after 3 similar events. Better accuracy expected from 8 to 10 events onwards.
+- With mock data, the module can be demonstrated from day one.
+
+**Open question:** Who is responsible for maintaining recipe-to-ingredient mappings? Kitchen Manager or Chef? Define this before building the mapping UI.
+
+### 5.7 Data Storage and Historical Reporting
+
+**Inputs:** Sensor data, tray refill events, configuration changes, guest counts, historical event data, procurement outputs.
+
+**Outputs:** Trend reports by dish, day, time, and event type; waste and overproduction summaries; alert history; refill history; forecast accuracy reports.
+
+**Rules:**
+- Store both raw readings and aggregated summaries.
+- Support CSV import for past or mock data.
+- Support export for reports.
+- Duplicate import protection required.
+
+---
+
+## 6. Data Models
+
+### Dish
+- dish_id, name, category, dish_type, full_tray_weight, tare_weight, batch_size, cook_trigger_percent, average_cook_time, popularity_score, is_active
+
+### Tray
+- tray_id, dish_id, sensor_id, tray_name, location, tare_weight, full_tray_weight, status, last_weight, last_updated_at
+
+### Sensor
+- sensor_id, tray_id, sensor_type, calibration_factor, firmware_version, connection_status, battery_level, installed_at
+
+### Event
+- event_id, event_name, event_type, date, start_time, end_time, expected_guest_count, actual_guest_count, service_notes
+
+### GuestCount
+- guest_count_id, event_id, count_type, count_value, source, recorded_at, recorded_by
+
+### Batch
+- batch_id, dish_id, event_id, batch_size, cooked_quantity, refill_quantity, cooked_at, reason
+
+### Ingredient
+- ingredient_id, name, unit_of_measure, recipe_quantity, dish_id, supplier_name, substitution_group
+
+### ProcurementSuggestion
+- suggestion_id, event_id, generated_at, ingredient_id, suggested_quantity, confidence_score, export_status
+
+---
+
+## 7. Non-Functional Requirements
+
+| Requirement | Specification |
+|---|---|
+| Sensor update frequency | Every 1 to 5 seconds |
+| Dashboard refresh rate | Every 10 seconds (confirmed acceptable by team) |
+| Offline behavior | Last known value shown with Stale Data label. Readings queue locally and sync on reconnect. |
+| Primary display | Wall-mounted screen. MVP uses laptop. |
+| UI legibility | Text and indicators must be readable from several metres. High contrast required. |
+| Access control | Role-based. Chef: view only. Kitchen Manager: edit config. Procurement: view outputs. F&B Director: view analytics. Admin: sensor setup, calibration, user management. |
+| Technical complexity for end user | Must be fully operable by a non-technical Kitchen Manager with no IT support. |
+
+---
+
+## 8. Out of Scope for v1
+
+- Direct two-way PMS/booking system integration.
+- Automated purchasing or supplier order placement.
+- Computer vision for plate or guest counting.
+- Advanced ML models.
+- Multi-property enterprise reporting.
+- Automated cooking equipment control.
+- One dish mapped across multiple trays (deferred to v2).
+- Inventory on-hand tracking.
+
+---
+
+## 9. Mock Data Requirements for MVP Demo
+
+Since there is no real historical data, the following mock data must be generated and seeded before the MVP demo.
+
+**Patterns to include:**
+- Standard weekday baseline (e.g. 80 to 120 pax)
+- Weekend uplift (e.g. 130 to 160 pax)
+- Public holiday spikes (e.g. Chinese New Year, Hari Raya, Deepavali: 180 to 220 pax)
+- School holiday increase (June and December: sustained 150 to 180 pax over multiple weeks)
+- Year-end travel peak (mid-December to early January: highest occupancy, 200+ pax)
+- Event-specific variations (weddings, corporate functions: variable, high volume)
+
+**Data to generate:**
+- At least 90 days of simulated tray weight readings for one dish.
+- Refill events tied to guest count peaks.
+- Batch cook logs with quantities.
+- Procurement outputs based on the above.
+
+---
+
+## 10. Open Questions (Must Resolve Before Build)
+
+| # | Question | Owner |
+|---|---|---|
+| 1 | What sensor communication protocol will be used? (MQTT, HTTP, WebSocket) | Tech lead |
+| 2 | What is the acceptable sensor accuracy tolerance in grams? | Kitchen Manager / client |
+| 3 | How long should raw sensor readings be retained before archiving? | Tech lead |
+| 4 | Should alerts go to dashboard only, or also to mobile push notifications? | Client |
+| 5 | Who maintains recipe-to-ingredient mappings? | Kitchen Manager or Chef? |
+| 6 | Should the UI support languages beyond English? (Kitchen staff in SG are often not English-first) | Client |
+| 7 | Should reports be generated daily, weekly, event-based, or all three by default? | Client |
+| 8 | Should historical CSV upload support Excel files as well? | Client |
+| 9 | How should full tray weight be stored: per tray, or per dish variant? | Tech lead |
+
+---
+
+## 11. Screen List (For Claude Code Reference)
+
+1. Chef Dashboard (wall-mounted view, all trays, sorted by urgency)
+2. Tray Detail View (single tray drill-down)
+3. Kitchen Manager Config (dish setup, sensor-to-dish mapping, recalibration)
+4. Guest Count Entry Form
+5. Procurement Suggestion View (shopping list, export)
+6. Analytics and Reporting View (trends, waste summary, forecast accuracy)
+7. Admin Panel (sensor setup, user management)
+8. CSV Import Screen
+
+---
+
+*This PRD is ready to be passed into Claude Code for vibe coding. Resolve the open questions in Section 10 before beginning sprint 1.*
