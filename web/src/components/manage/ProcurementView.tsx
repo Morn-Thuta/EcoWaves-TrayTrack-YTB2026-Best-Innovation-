@@ -16,6 +16,54 @@ interface ProcurementViewProps {
 export function ProcurementView({ suggestions, ingredients }: ProcurementViewProps) {
   const [exporting, setExporting] = useState(false);
 
+  function exportPDF() {
+    const date = new Date().toISOString().split("T")[0];
+    const rows = suggestions
+      .map(
+        (s: SuggestionWithRelations) =>
+          `<tr>
+            <td>${s.ingredients?.name ?? "—"}</td>
+            <td>${s.ingredients?.dishes?.name ?? "—"}</td>
+            <td style="text-align:right">${s.suggested_quantity}</td>
+            <td>${s.ingredients?.unit_of_measure ?? "—"}</td>
+            <td>${s.target_date}</td>
+            <td style="text-align:center">${Math.round(s.confidence_score * 100)}%</td>
+          </tr>`
+      )
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Procurement Report ${date}</title>
+  <style>
+    body { font-family: sans-serif; font-size: 12px; margin: 24px; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    p { color: #555; margin-bottom: 16px; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f3f4f6; text-align: left; padding: 6px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
+    @media print { body { margin: 0; } }
+  </style>
+</head>
+<body>
+  <h1>Procurement Suggestions</h1>
+  <p>Generated: ${new Date().toLocaleString("en-SG")} &nbsp;|&nbsp; ${suggestions.length} item(s)</p>
+  <table>
+    <thead><tr><th>Ingredient</th><th>Dish</th><th style="text-align:right">Suggested Qty</th><th>Unit</th><th>Target Date</th><th style="text-align:center">Confidence</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  }
+
   async function exportCSV() {
     setExporting(true);
     const rows = [
@@ -50,6 +98,13 @@ export function ProcurementView({ suggestions, ingredients }: ProcurementViewPro
           className="bg-blue-700 hover:bg-blue-600 text-white"
         >
           Download CSV
+        </Button>
+        <Button
+          onClick={exportPDF}
+          disabled={suggestions.length === 0}
+          className="bg-gray-700 hover:bg-gray-600 text-white"
+        >
+          Download PDF
         </Button>
       </div>
 

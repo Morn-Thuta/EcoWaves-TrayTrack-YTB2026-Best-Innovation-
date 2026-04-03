@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { TrayCard } from "./TrayCard";
+import { TrayDetailModal } from "./TrayDetailModal";
 import { AlertBanner } from "./AlertBanner";
 import { CookSuggestionPanel } from "./CookSuggestionPanel";
 import { useRealtimeTrays } from "@/hooks/useRealtimeTrays";
@@ -21,6 +22,7 @@ interface TrayGridProps {
 
 export function TrayGrid({ todayPax, historicalAvgPax }: TrayGridProps) {
   const { trays, loading, lastUpdated } = useRealtimeTrays();
+  const [selectedTray, setSelectedTray] = useState<TrayCardData | null>(null);
 
   // Update consumption engine with new readings
   useEffect(() => {
@@ -75,7 +77,7 @@ export function TrayGrid({ todayPax, historicalAvgPax }: TrayGridProps) {
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {enrichedTrays.map((tray) => (
-          <TrayCard key={tray.tray_id} tray={tray} />
+          <TrayCard key={tray.tray_id} tray={tray} onClick={() => setSelectedTray(tray)} />
         ))}
       </div>
 
@@ -83,6 +85,10 @@ export function TrayGrid({ todayPax, historicalAvgPax }: TrayGridProps) {
         <p className="text-gray-600 text-xs text-center">
           Updated {lastUpdated.toLocaleTimeString()}
         </p>
+      )}
+
+      {selectedTray && (
+        <TrayDetailModal tray={selectedTray} onClose={() => setSelectedTray(null)} />
       )}
     </div>
   );

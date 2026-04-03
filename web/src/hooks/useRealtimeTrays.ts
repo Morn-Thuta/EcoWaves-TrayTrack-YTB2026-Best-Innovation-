@@ -33,7 +33,7 @@ export function useRealtimeTrays() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "trays",
         },

@@ -105,6 +105,7 @@ export function CsvImporter() {
 
           if (insertError) {
             skipped += batch.length;
+            setError(`Import error: ${insertError.message}`);
           } else {
             imported += batch.length;
           }

@@ -25,9 +25,10 @@ const TREND_ICONS: Record<TrayCardData["trend"], string> = {
 
 interface TrayCardProps {
   tray: TrayCardData;
+  onClick?: () => void;
 }
 
-export function TrayCard({ tray }: TrayCardProps) {
+export function TrayCard({ tray, onClick }: TrayCardProps) {
   const colors = COLOR_MAP[tray.color_code];
   const foodKg = (tray.food_weight_grams / 1000).toFixed(1);
   const lastUpdateSeconds = Math.round(
@@ -36,7 +37,8 @@ export function TrayCard({ tray }: TrayCardProps) {
 
   return (
     <div
-      className={`relative rounded-2xl border-2 ${colors.bg} ${colors.border} p-6 flex flex-col gap-3 min-h-[220px]`}
+      onClick={onClick}
+      className={`relative rounded-2xl border-2 ${colors.bg} ${colors.border} p-6 flex flex-col gap-3 min-h-[220px]${onClick ? " cursor-pointer hover:brightness-110 transition-all" : ""}`}
     >
       {/* Status badge */}
       <div className="flex items-start justify-between">

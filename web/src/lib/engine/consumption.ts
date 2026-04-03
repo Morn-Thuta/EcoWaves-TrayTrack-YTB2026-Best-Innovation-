@@ -73,6 +73,27 @@ export function getTrend(trayId: string): "up" | "down" | "stable" {
 }
 
 /**
+ * Returns how many minutes of history we have for this tray.
+ * Used to determine confidence in depletion-based suggestions.
+ */
+export function getHistoryAgeMinutes(trayId: string): number {
+  const history = trayHistory.get(trayId);
+  if (!history || history.length < 2) return 0;
+  const oldest = history[0];
+  const newest = history[history.length - 1];
+  return (newest.timestamp - oldest.timestamp) / 60000;
+}
+
+/**
+ * Returns the raw weight history for a tray (newest first, up to 50 points).
+ */
+export function getWeightHistory(trayId: string): Array<{ weight: number; timestamp: number }> {
+  const history = trayHistory.get(trayId);
+  if (!history) return [];
+  return [...history].reverse().slice(0, 50);
+}
+
+/**
  * Returns true if the tray reading is stale (>60 seconds old).
  */
 export function isStale(lastUpdatedAt: string): boolean {

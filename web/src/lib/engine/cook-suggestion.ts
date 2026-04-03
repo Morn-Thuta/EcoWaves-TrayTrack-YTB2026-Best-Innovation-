@@ -1,5 +1,5 @@
 import type { TrayDashboardItem, CookSuggestion } from "@/types/domain";
-import { getDepletionRate } from "./consumption";
+import { getDepletionRate, getHistoryAgeMinutes } from "./consumption";
 
 const BUFFER_MINUTES = 10; // Extra buffer beyond cook time
 
@@ -15,6 +15,8 @@ export function getCookSuggestion(
   // Don't suggest for offline or maintenance trays
   if (tray.status !== "active") return null;
   if (tray.color_code === "grey") return null;
+  // Ready-to-serve dishes (salads, fruit, etc.) don't need cooking
+  if (tray.dish_type === "ready-to-serve") return null;
 
   const remainingPercent = tray.remaining_percent;
   const depletionRate = getDepletionRate(tray.tray_id); // g/min
@@ -50,13 +52,13 @@ export function getCookSuggestion(
     urgency = "soon";
   }
 
-  // Determine confidence based on data available
+  // Determine confidence based on how much history we have for this tray
   let confidence: CookSuggestion["confidence"] = "low";
   if (depletionRate && minutesToEmpty !== null) {
-    const historyAge = minutesToEmpty; // Rough proxy
-    if (historyAge >= 30 || remainingPercent <= 10) {
+    const historyAge = getHistoryAgeMinutes(tray.tray_id); // actual minutes of data
+    if (historyAge >= 3 || remainingPercent <= 10) {
       confidence = "high";
-    } else if (historyAge >= 10) {
+    } else if (historyAge >= 1) {
       confidence = "medium";
     }
   } else if (remainingPercent <= triggerThreshold) {

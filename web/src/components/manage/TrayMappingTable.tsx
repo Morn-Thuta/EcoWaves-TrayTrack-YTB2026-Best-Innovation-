@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import type { Tray, Dish, Sensor } from "@/types/domain";
@@ -107,8 +107,8 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
           </thead>
           <tbody className="divide-y divide-gray-800">
             {trays.map((tray) => (
-              <>
-                <tr key={tray.tray_id} className="bg-gray-950 hover:bg-gray-900">
+              <React.Fragment key={tray.tray_id}>
+                <tr className="bg-gray-950 hover:bg-gray-900">
                   <td className="px-4 py-3 text-white font-medium">{tray.tray_name}</td>
                   <td className="px-4 py-3 text-gray-400">{tray.location ?? "—"}</td>
 
@@ -233,7 +233,7 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
             {trays.length === 0 && (
               <tr>

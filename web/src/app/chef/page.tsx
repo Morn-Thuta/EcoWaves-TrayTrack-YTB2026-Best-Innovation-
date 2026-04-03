@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TrayGrid } from "@/components/chef/TrayGrid";
 
@@ -56,13 +57,19 @@ export default async function ChefDashboardPage() {
           </h1>
           <p className="text-gray-400 text-sm">Live Tray Monitor</p>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-6">
           {todayPax && (
-            <div>
+            <div className="text-right">
               <span className="text-gray-400 text-xs uppercase tracking-wide">Today&apos;s Pax</span>
               <p className="text-white text-3xl font-black">{todayPax}</p>
             </div>
           )}
+          <Link
+            href="/manage/config"
+            className="text-sm text-gray-300 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-800 transition-colors"
+          >
+            ← Management
+          </Link>
         </div>
       </header>
 
