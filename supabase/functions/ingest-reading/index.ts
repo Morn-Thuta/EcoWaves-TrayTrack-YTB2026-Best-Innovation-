@@ -46,18 +46,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify sensor exists
-    const { data: sensor, error: sensorError } = await supabase
+    // Find or auto-register sensor
+    let { data: sensor } = await supabase
       .from("sensors")
       .select("sensor_id, tray_id")
       .eq("sensor_id", payload.sensor_id)
       .single();
 
-    if (sensorError || !sensor) {
-      return new Response(
-        JSON.stringify({ error: "Sensor not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!sensor) {
+      // Auto-register: new ESP32 just turned on for the first time
+      const { data: newSensor } = await supabase
+        .from("sensors")
+        .insert({
+          sensor_id: payload.sensor_id,
+          connection_status: "online",
+          last_seen_at: new Date().toISOString(),
+        })
+        .select("sensor_id, tray_id")
+        .single();
+
+      if (!newSensor) {
+        return new Response(
+          JSON.stringify({ error: "Failed to register sensor" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      sensor = newSensor;
+      console.log(`Auto-registered new sensor: ${payload.sensor_id}`);
     }
 
     const recordedAt = payload.recorded_at

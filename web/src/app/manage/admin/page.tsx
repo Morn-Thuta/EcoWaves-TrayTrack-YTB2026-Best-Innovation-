@@ -10,7 +10,7 @@ export default async function AdminPage() {
   const [{ data: sensors }, { data: users }] = await Promise.all([
     supabase
       .from("sensors")
-      .select("*, trays(tray_name, dishes(name))")
+      .select("*, trays!fk_sensors_tray(tray_name, dishes(name))")
       .order("created_at"),
     supabase
       .from("user_profiles")

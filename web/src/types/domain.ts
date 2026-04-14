@@ -1,4 +1,7 @@
-import type { Database, ColorCode } from "./database";
+import type { Database } from "./database";
+
+export type ColorCode = "green" | "amber" | "red" | "grey";
+export type UserRole = Database["public"]["Enums"]["user_role"];
 
 // Convenience type aliases
 export type Dish = Database["public"]["Tables"]["dishes"]["Row"];
@@ -41,6 +44,7 @@ export interface CookSuggestion {
   batchSize: number;
   cookTimeMinutes: number;
   minutesToEmpty: number;
+  recommendedWeightKg: number;
   urgency: "immediate" | "soon" | "planned";
   confidence: "high" | "medium" | "low";
 }
@@ -52,4 +56,3 @@ export interface AlertSummary {
   stale: number;
 }
 
-export { ColorCode };

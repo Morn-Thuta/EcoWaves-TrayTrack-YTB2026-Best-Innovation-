@@ -191,28 +191,34 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          current_stock: number
           dish_id: string
           ingredient_id: string
           name: string
           recipe_quantity: number
+          stock_updated_at: string | null
           substitution_group: string | null
           supplier_name: string | null
           unit_of_measure: string
         }
         Insert: {
+          current_stock?: number
           dish_id: string
           ingredient_id?: string
           name: string
           recipe_quantity: number
+          stock_updated_at?: string | null
           substitution_group?: string | null
           supplier_name?: string | null
           unit_of_measure: string
         }
         Update: {
+          current_stock?: number
           dish_id?: string
           ingredient_id?: string
           name?: string
           recipe_quantity?: number
+          stock_updated_at?: string | null
           substitution_group?: string | null
           supplier_name?: string | null
           unit_of_measure?: string
@@ -605,6 +611,7 @@ export type Database = {
         Args: { p_threshold_grams?: number; p_tray_id: string }
         Returns: boolean
       }
+      fn_simulate_sensor_tick: { Args: never; Returns: undefined }
       fn_update_tray_weight: {
         Args: {
           p_recorded_at?: string

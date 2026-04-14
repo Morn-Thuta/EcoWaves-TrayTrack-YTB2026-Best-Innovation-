@@ -45,10 +45,10 @@ export function getDepletionRate(trayId: string): number | null {
  * Returns null if depletion rate is unknown or zero.
  */
 export function getEstimatedMinutesToEmpty(tray: TrayDashboardItem): number | null {
-  const rate = getDepletionRate(tray.tray_id);
+  const rate = getDepletionRate(tray.tray_id ?? "");
   if (!rate || rate <= 0) return null;
 
-  const foodWeightGrams = tray.food_weight_grams;
+  const foodWeightGrams = tray.food_weight_grams ?? 0;
   if (foodWeightGrams <= 0) return 0;
 
   return Math.round(foodWeightGrams / rate);

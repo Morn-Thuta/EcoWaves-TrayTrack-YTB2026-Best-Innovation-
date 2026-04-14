@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { TrayCard } from "./TrayCard";
 import { TrayDetailModal } from "./TrayDetailModal";
-import { AlertBanner } from "./AlertBanner";
+import { PriorityPanel } from "./PriorityPanel";
 import { CookSuggestionPanel } from "./CookSuggestionPanel";
 import { useRealtimeTrays } from "@/hooks/useRealtimeTrays";
+import { useRealtimeOccupancy } from "@/hooks/useRealtimeOccupancy";
 import {
   recordWeight,
   getEstimatedMinutesToEmpty,
@@ -13,21 +14,21 @@ import {
   isStale,
 } from "@/lib/engine/consumption";
 import { getAllCookSuggestions } from "@/lib/engine/cook-suggestion";
-import type { TrayCardData, AlertSummary } from "@/types/domain";
+import type { TrayCardData } from "@/types/domain";
 
 interface TrayGridProps {
-  todayPax: number | null;
   historicalAvgPax: number | null;
 }
 
-export function TrayGrid({ todayPax, historicalAvgPax }: TrayGridProps) {
+export function TrayGrid({ historicalAvgPax }: TrayGridProps) {
   const { trays, loading, lastUpdated } = useRealtimeTrays();
+  const { todayPax } = useRealtimeOccupancy();
   const [selectedTray, setSelectedTray] = useState<TrayCardData | null>(null);
 
   // Update consumption engine with new readings
   useEffect(() => {
     trays.forEach((tray) => {
-      recordWeight(tray.tray_id, tray.last_weight_grams);
+      if (tray.tray_id) recordWeight(tray.tray_id, tray.last_weight_grams ?? 0);
     });
   }, [trays]);
 
@@ -50,29 +51,21 @@ export function TrayGrid({ todayPax, historicalAvgPax }: TrayGridProps) {
   // Enrich tray data with computed fields
   const enrichedTrays: TrayCardData[] = trays.map((tray) => ({
     ...tray,
-    trend: getTrend(tray.tray_id),
+    trend: getTrend(tray.tray_id ?? ""),
     estimatedMinutesToEmpty: getEstimatedMinutesToEmpty(tray),
-    isStale: isStale(tray.last_updated_at),
+    isStale: isStale(tray.last_updated_at ?? new Date(0).toISOString()),
     depletionRateGramsPerMin: null,
   }));
-
-  // Alert summary
-  const alertSummary: AlertSummary = {
-    critical: enrichedTrays.filter((t) => t.color_code === "red").length,
-    low: enrichedTrays.filter((t) => t.color_code === "amber").length,
-    offline: enrichedTrays.filter((t) => t.status === "offline").length,
-    stale: enrichedTrays.filter((t) => t.isStale && t.color_code !== "grey").length,
-  };
 
   // Cook suggestions
   const cookSuggestions = getAllCookSuggestions(trays, todayPax, historicalAvgPax);
 
   return (
     <div className="space-y-6">
-      <AlertBanner summary={alertSummary} />
+      <PriorityPanel trays={enrichedTrays} onSelectTray={setSelectedTray} />
 
       {cookSuggestions.length > 0 && (
-        <CookSuggestionPanel suggestions={cookSuggestions} />
+        <CookSuggestionPanel suggestions={cookSuggestions} todayPax={todayPax} />
       )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

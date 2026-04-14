@@ -1,200 +1,221 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import type { Ingredient, Dish } from "@/types/domain";
+import { createClient } from "@/lib/supabase/client";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SuggestionWithRelations = any;
-
-interface ProcurementViewProps {
-  suggestions: SuggestionWithRelations[];
-  ingredients: (Ingredient & { dishes?: { name: string } | null })[];
-  dishes: Pick<Dish, "dish_id" | "name">[];
+interface Ingredient {
+  ingredient_id: string;
+  name: string;
+  dish_id: string;
+  recipe_quantity: number;
+  unit_of_measure: string;
+  current_stock: number;
+  stock_updated_at: string | null;
+  dishes: { name: string; batch_size: number } | null;
 }
 
-export function ProcurementView({ suggestions, ingredients }: ProcurementViewProps) {
-  const [exporting, setExporting] = useState(false);
+interface Dish {
+  dish_id: string;
+  name: string;
+  batch_size: number;
+}
 
-  function exportPDF() {
-    const date = new Date().toISOString().split("T")[0];
-    const rows = suggestions
-      .map(
-        (s: SuggestionWithRelations) =>
-          `<tr>
-            <td>${s.ingredients?.name ?? "—"}</td>
-            <td>${s.ingredients?.dishes?.name ?? "—"}</td>
-            <td style="text-align:right">${s.suggested_quantity}</td>
-            <td>${s.ingredients?.unit_of_measure ?? "—"}</td>
-            <td>${s.target_date}</td>
-            <td style="text-align:center">${Math.round(s.confidence_score * 100)}%</td>
-          </tr>`
-      )
-      .join("");
+interface ProcurementViewProps {
+  ingredients: Ingredient[];
+  dishes: Dish[];
+  tomorrowPax: number;
+  avgPax: number;
+}
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Procurement Report ${date}</title>
-  <style>
-    body { font-family: sans-serif; font-size: 12px; margin: 24px; }
-    h1 { font-size: 18px; margin-bottom: 4px; }
-    p { color: #555; margin-bottom: 16px; font-size: 11px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f3f4f6; text-align: left; padding: 6px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #e5e7eb; }
-    td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
-    @media print { body { margin: 0; } }
-  </style>
-</head>
-<body>
-  <h1>Procurement Suggestions</h1>
-  <p>Generated: ${new Date().toLocaleString("en-SG")} &nbsp;|&nbsp; ${suggestions.length} item(s)</p>
-  <table>
-    <thead><tr><th>Ingredient</th><th>Dish</th><th style="text-align:right">Suggested Qty</th><th>Unit</th><th>Target Date</th><th style="text-align:center">Confidence</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-</body>
-</html>`;
+interface ComputedRow {
+  ingredient_id: string;
+  ingredientName: string;
+  dishName: string;
+  currentStock: number;
+  neededTomorrow: number;
+  toBuy: number;
+  unit: string;
+}
 
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    win.print();
+function computeRows(ingredients: Ingredient[], tomorrowPax: number, avgPax: number): ComputedRow[] {
+  return ingredients.map((ing) => {
+    const demandFactor = avgPax > 0 ? tomorrowPax / avgPax : 1;
+    const neededTomorrow = Math.ceil(demandFactor * ing.recipe_quantity * 10) / 10;
+    const toBuy = Math.max(0, Math.ceil((neededTomorrow - ing.current_stock) * 10) / 10);
+    return {
+      ingredient_id: ing.ingredient_id,
+      ingredientName: ing.name,
+      dishName: ing.dishes?.name ?? "—",
+      currentStock: ing.current_stock,
+      neededTomorrow,
+      toBuy,
+      unit: ing.unit_of_measure,
+    };
+  });
+}
+
+function exportCSV(rows: ComputedRow[], tomorrowPax: number) {
+  const header = "Ingredient,Dish,Current Stock,Needed Tomorrow,To Buy,Unit";
+  const lines = rows.map((r) =>
+    `"${r.ingredientName}","${r.dishName}",${r.currentStock},${r.neededTomorrow},${r.toBuy},"${r.unit}"`
+  );
+  const csv = [header, ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `procurement-${new Date().toISOString().split("T")[0]}-pax${tomorrowPax}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF(rows: ComputedRow[], tomorrowPax: number) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dateStr = tomorrow.toISOString().split("T")[0];
+
+  const tableRows = rows
+    .map(
+      (r) => `<tr style="background:${r.toBuy > 0 ? "#fff3cd" : "#fff"}">
+        <td>${r.ingredientName}</td><td>${r.dishName}</td>
+        <td>${r.currentStock} ${r.unit}</td><td>${r.neededTomorrow} ${r.unit}</td>
+        <td style="font-weight:bold;color:${r.toBuy > 0 ? "#856404" : "#155724"}">${r.toBuy > 0 ? r.toBuy + " " + r.unit : "&#10003; OK"}</td>
+      </tr>`
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html><html><head><title>Procurement ${dateStr}</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:18px}
+  table{width:100%;border-collapse:collapse;margin-top:16px}
+  th{background:#1a1a2e;color:white;padding:8px 12px;text-align:left;font-size:12px}
+  td{padding:8px 12px;border-bottom:1px solid #ddd;font-size:12px}
+  .meta{color:#666;font-size:12px;margin-bottom:8px}
+  @media print{body{padding:0}}</style></head><body>
+  <h1>Procurement Shopping List &#8212; ${dateStr}</h1>
+  <p class="meta">Tomorrow&#39;s expected pax: <strong>${tomorrowPax}</strong> &#xB7; Generated: ${new Date().toLocaleString()}</p>
+  <table><thead><tr><th>Ingredient</th><th>Dish</th><th>Current Stock</th><th>Needed</th><th>To Buy</th></tr></thead>
+  <tbody>${tableRows}</tbody></table>
+  <script>window.onload=()=>window.print()</script></body></html>`;
+
+  const win = window.open("", "_blank");
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
+export function ProcurementView({ ingredients, dishes: _dishes, tomorrowPax, avgPax }: ProcurementViewProps) {
+  const [items, setItems] = useState<Ingredient[]>(ingredients);
+  const [saving, setSaving] = useState<string | null>(null);
+  const supabase = createClient();
+
+  const rows = computeRows(items, tomorrowPax, avgPax);
+  const toBuyCount = rows.filter((r) => r.toBuy > 0).length;
+
+  async function updateStock(ingredientId: string, value: number) {
+    setSaving(ingredientId);
+    await supabase
+      .from("ingredients")
+      .update({ current_stock: value, stock_updated_at: new Date().toISOString() })
+      .eq("ingredient_id", ingredientId);
+    setItems((prev) =>
+      prev.map((i) => i.ingredient_id === ingredientId ? { ...i, current_stock: value } : i)
+    );
+    setSaving(null);
   }
 
-  async function exportCSV() {
-    setExporting(true);
-    const rows = [
-      ["Ingredient", "Dish", "Suggested Qty", "Unit", "Target Date", "Confidence"],
-      ...suggestions.map((s: SuggestionWithRelations) => [
-        s.ingredients?.name ?? "—",
-        s.ingredients?.dishes?.name ?? "—",
-        s.suggested_quantity,
-        s.ingredients?.unit_of_measure ?? "—",
-        s.target_date,
-        `${Math.round(s.confidence_score * 100)}%`,
-      ]),
-    ];
-
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `procurement-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExporting(false);
-  }
+  const byDish = rows.reduce<Record<string, ComputedRow[]>>((acc, r) => {
+    (acc[r.dishName] = acc[r.dishName] ?? []).push(r);
+    return acc;
+  }, {});
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-3">
-        <Button
-          onClick={exportCSV}
-          disabled={exporting || suggestions.length === 0}
-          className="bg-blue-700 hover:bg-blue-600 text-white"
-        >
-          Download CSV
-        </Button>
-        <Button
-          onClick={exportPDF}
-          disabled={suggestions.length === 0}
-          className="bg-gray-700 hover:bg-gray-600 text-white"
-        >
-          Download PDF
-        </Button>
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-gray-800">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-900 text-gray-400 uppercase text-xs tracking-wide">
-            <tr>
-              <th className="px-4 py-3 text-left">Ingredient</th>
-              <th className="px-4 py-3 text-left">Dish</th>
-              <th className="px-4 py-3 text-right">Suggested Qty</th>
-              <th className="px-4 py-3 text-left">Unit</th>
-              <th className="px-4 py-3 text-left">Target Date</th>
-              <th className="px-4 py-3 text-center">Confidence</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
-            {suggestions.map((s: SuggestionWithRelations) => (
-              <tr key={s.suggestion_id} className="bg-gray-950 hover:bg-gray-900">
-                <td className="px-4 py-3 text-white font-medium">
-                  {s.ingredients?.name ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-400">
-                  {s.ingredients?.dishes?.name ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-300 text-right font-mono">
-                  {s.suggested_quantity}
-                </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {s.ingredients?.unit_of_measure ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-400">{s.target_date}</td>
-                <td className="px-4 py-3 text-center">
-                  <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      s.confidence_score >= 0.7
-                        ? "bg-green-900 text-green-300"
-                        : s.confidence_score >= 0.4
-                        ? "bg-amber-900 text-amber-300"
-                        : "bg-gray-800 text-gray-400"
-                    }`}
-                  >
-                    {Math.round(s.confidence_score * 100)}%
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {suggestions.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-600">
-                  No procurement suggestions yet. More data needed from sensor readings.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {ingredients.length > 0 && (
-        <details className="mt-4">
-          <summary className="text-gray-500 text-sm cursor-pointer hover:text-gray-300">
-            Ingredient recipe mappings ({ingredients.length})
-          </summary>
-          <div className="mt-2 overflow-x-auto rounded-xl border border-gray-800">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-900 text-gray-400 uppercase text-xs tracking-wide">
-                <tr>
-                  <th className="px-4 py-3 text-left">Ingredient</th>
-                  <th className="px-4 py-3 text-left">Dish</th>
-                  <th className="px-4 py-3 text-right">Qty per Batch</th>
-                  <th className="px-4 py-3 text-left">Unit</th>
-                  <th className="px-4 py-3 text-left">Supplier</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {ingredients.map((ing) => (
-                  <tr key={ing.ingredient_id} className="bg-gray-950 hover:bg-gray-900">
-                    <td className="px-4 py-3 text-white">{ing.name}</td>
-                    <td className="px-4 py-3 text-gray-400">{ing.dishes?.name ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-300 text-right font-mono">
-                      {ing.recipe_quantity}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{ing.unit_of_measure}</td>
-                    <td className="px-4 py-3 text-gray-500">{ing.supplier_name ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="space-y-6">
+      {/* Summary bar */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2">
+            <span className="text-gray-400 text-xs uppercase tracking-wide">Tomorrow&apos;s Pax</span>
+            <p className="text-white text-2xl font-black">{tomorrowPax}</p>
           </div>
-        </details>
-      )}
+          <div className={`border rounded-lg px-4 py-2 ${toBuyCount > 0 ? "bg-amber-950 border-amber-700" : "bg-green-950 border-green-700"}`}>
+            <span className="text-gray-400 text-xs uppercase tracking-wide">Items to Buy</span>
+            <p className={`text-2xl font-black ${toBuyCount > 0 ? "text-amber-300" : "text-green-300"}`}>{toBuyCount}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => exportCSV(rows, tomorrowPax)}
+            className="text-sm text-gray-300 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-800 transition-colors"
+          >
+            Download CSV
+          </button>
+          <button
+            onClick={() => exportPDF(rows, tomorrowPax)}
+            className="text-sm text-gray-300 border border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-800 transition-colors"
+          >
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Table grouped by dish */}
+      {Object.entries(byDish).map(([dishName, dishRows]) => (
+        <div key={dishName} className="rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-gray-900 px-4 py-2.5 flex items-center justify-between">
+            <span className="text-white font-semibold">{dishName}</span>
+            <span className="text-gray-500 text-xs">{dishRows.length} ingredient{dishRows.length > 1 ? "s" : ""}</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-950 text-gray-400 text-xs uppercase tracking-wide">
+              <tr>
+                <th className="px-4 py-2 text-left">Ingredient</th>
+                <th className="px-4 py-2 text-right">Current Stock</th>
+                <th className="px-4 py-2 text-right">Needed Tomorrow</th>
+                <th className="px-4 py-2 text-right">To Buy</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {dishRows.map((row) => {
+                const ing = items.find((i) => i.ingredient_id === row.ingredient_id)!;
+                return (
+                  <tr key={row.ingredient_id} className={row.toBuy > 0 ? "bg-amber-950/20" : "bg-gray-950"}>
+                    <td className="px-4 py-3 text-white font-medium">{row.ingredientName}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          defaultValue={ing.current_stock}
+                          onBlur={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!isNaN(v) && v !== ing.current_stock) updateStock(row.ingredient_id, v);
+                          }}
+                          className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-white text-right text-sm focus:border-green-500 outline-none"
+                        />
+                        <span className="text-gray-400 text-xs w-8">{row.unit}</span>
+                        {saving === row.ingredient_id && <span className="text-green-400 text-xs">✓</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-300 text-right">
+                      {row.neededTomorrow} {row.unit}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold">
+                      {row.toBuy > 0 ? (
+                        <span className="text-amber-400">{row.toBuy} {row.unit}</span>
+                      ) : (
+                        <span className="text-green-500 text-xs">✓ OK</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ))}
+
+      <p className="text-gray-600 text-xs text-center">
+        Edit the current stock field and click away to save. Changes update the To Buy column instantly.
+      </p>
     </div>
   );
 }

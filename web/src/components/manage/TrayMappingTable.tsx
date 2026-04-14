@@ -11,13 +11,50 @@ interface TrayMappingTableProps {
   sensors: Sensor[];
 }
 
+const BLANK_TRAY = { tray_name: "", location: "", dish_id: "", sensor_id: "", full_tray_weight_grams: "" };
+
 export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingTableProps) {
   const [trays, setTrays] = useState<Tray[]>(initialTrays);
   const [saving, setSaving] = useState<string | null>(null);
   const [calibrating, setCalibrating] = useState<string | null>(null);
   const [calibStep, setCalibStep] = useState<"empty" | "weight">("empty");
   const [knownWeight, setKnownWeight] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [newTray, setNewTray] = useState(BLANK_TRAY);
+  const [addError, setAddError] = useState<string | null>(null);
   const supabase = createClient();
+
+  async function addTray() {
+    if (!newTray.tray_name.trim()) { setAddError("Tray name is required."); return; }
+    if (!newTray.full_tray_weight_grams || parseFloat(newTray.full_tray_weight_grams) <= 0) {
+      setAddError("Full tray weight must be > 0."); return;
+    }
+    setAddError(null);
+    setSaving("new");
+
+    const { data, error } = await supabase
+      .from("trays")
+      .insert({
+        tray_name: newTray.tray_name.trim(),
+        location: newTray.location.trim() || null,
+        dish_id: newTray.dish_id || null,
+        sensor_id: newTray.sensor_id || null,
+        full_tray_weight_grams: parseFloat(newTray.full_tray_weight_grams) * 1000,
+        tare_weight_grams: 0,
+        status: "active",
+        last_weight_grams: 0,
+      })
+      .select()
+      .single();
+
+    setSaving(null);
+    if (error) { setAddError(error.message); return; }
+    if (data) {
+      setTrays((prev) => [...prev, data]);
+      setNewTray(BLANK_TRAY);
+      setAdding(false);
+    }
+  }
 
   async function updateTrayMapping(
     trayId: string,
@@ -25,6 +62,21 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
     value: string | null
   ) {
     setSaving(trayId);
+
+    // When reassigning a sensor, keep sensors.tray_id in sync
+    if (field === "sensor_id") {
+      const oldSensorId = trays.find((t) => t.tray_id === trayId)?.sensor_id;
+
+      // Clear old sensor's tray_id
+      if (oldSensorId) {
+        await supabase.from("sensors").update({ tray_id: null }).eq("sensor_id", oldSensorId);
+      }
+      // Set new sensor's tray_id
+      if (value) {
+        await supabase.from("sensors").update({ tray_id: trayId }).eq("sensor_id", value);
+      }
+    }
+
     const { data } = await supabase
       .from("trays")
       .update({ [field]: value || null })
@@ -92,6 +144,15 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          onClick={() => { setAdding(true); setAddError(null); }}
+          className="bg-green-700 hover:bg-green-600 text-white text-sm"
+        >
+          + Add Tray
+        </Button>
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-gray-800">
         <table className="w-full text-sm">
           <thead className="bg-gray-900 text-gray-400 uppercase text-xs tracking-wide">
@@ -235,10 +296,80 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                 )}
               </React.Fragment>
             ))}
-            {trays.length === 0 && (
+            {/* Inline add-tray form */}
+            {adding && (
+              <tr className="bg-green-950 border-t border-green-800">
+                <td className="px-3 py-3">
+                  <input
+                    autoFocus
+                    placeholder="Tray name *"
+                    value={newTray.tray_name}
+                    onChange={(e) => setNewTray((p) => ({ ...p, tray_name: e.target.value }))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <input
+                    placeholder="e.g. Station 4"
+                    value={newTray.location}
+                    onChange={(e) => setNewTray((p) => ({ ...p, location: e.target.value }))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <select
+                    value={newTray.dish_id}
+                    onChange={(e) => setNewTray((p) => ({ ...p, dish_id: e.target.value }))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                  >
+                    <option value="">— No dish —</option>
+                    {dishes.map((d) => <option key={d.dish_id} value={d.dish_id}>{d.name}</option>)}
+                  </select>
+                </td>
+                <td className="px-3 py-3">
+                  <select
+                    value={newTray.sensor_id}
+                    onChange={(e) => setNewTray((p) => ({ ...p, sensor_id: e.target.value }))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                  >
+                    <option value="">— No sensor yet —</option>
+                    {sensors.map((s) => (
+                      <option key={s.sensor_id} value={s.sensor_id}>
+                        {s.sensor_id.slice(0, 8)}… ({s.connection_status})
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-3 py-3">
+                  <input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    placeholder="kg *"
+                    value={newTray.full_tray_weight_grams}
+                    onChange={(e) => setNewTray((p) => ({ ...p, full_tray_weight_grams: e.target.value }))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                  />
+                </td>
+                <td className="px-3 py-3 text-center text-xs text-gray-500">active</td>
+                <td className="px-3 py-3">
+                  <div className="flex gap-2 justify-center">
+                    <Button size="sm" onClick={addTray} disabled={saving === "new"} className="bg-green-700 hover:bg-green-600 text-white text-xs">
+                      {saving === "new" ? "Saving…" : "Save"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setAddError(null); }} className="text-gray-400 text-xs">
+                      Cancel
+                    </Button>
+                  </div>
+                  {addError && <p className="text-red-400 text-xs mt-1 text-center">{addError}</p>}
+                </td>
+              </tr>
+            )}
+
+            {trays.length === 0 && !adding && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-600">
-                  No trays configured. Contact admin to add trays.
+                  No trays configured. Click &quot;+ Add Tray&quot; to get started.
                 </td>
               </tr>
             )}

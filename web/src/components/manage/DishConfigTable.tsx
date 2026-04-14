@@ -31,11 +31,13 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
   const [editing, setEditing] = useState<Dish | null>(null);
   const [form, setForm] = useState<DishInsert>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   function openAdd() {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setError(null);
     setOpen(true);
   }
 
@@ -58,26 +60,48 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
 
   async function handleSave() {
     setSaving(true);
+    setError(null);
+
+    if (!form.name.trim()) {
+      setError("Dish name is required.");
+      setSaving(false);
+      return;
+    }
+    if (form.full_tray_weight_grams <= 0) {
+      setError("Full tray weight must be greater than 0.");
+      setSaving(false);
+      return;
+    }
 
     if (editing) {
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from("dishes")
         .update(form)
         .eq("dish_id", editing.dish_id)
         .select()
         .single();
 
-      if (!error && data) {
+      if (dbError) {
+        setError(dbError.message);
+        setSaving(false);
+        return;
+      }
+      if (data) {
         setDishes((prev) => prev.map((d) => (d.dish_id === data.dish_id ? data : d)));
       }
     } else {
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from("dishes")
         .insert(form)
         .select()
         .single();
 
-      if (!error && data) {
+      if (dbError) {
+        setError(dbError.message);
+        setSaving(false);
+        return;
+      }
+      if (data) {
         setDishes((prev) => [...prev, data]);
       }
     }
@@ -255,6 +279,10 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
               </Field>
             </div>
           </div>
+
+          {error && (
+            <p className="text-red-400 text-sm px-1 pb-1">{error}</p>
+          )}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="text-gray-400">

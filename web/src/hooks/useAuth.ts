@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { UserRole } from "@/types/database";
+import type { UserRole } from "@/types/domain";
 
 interface AuthUser {
   id: string;

@@ -19,11 +19,13 @@ export function OccupancyForm({ today, existing }: OccupancyFormProps) {
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setError(null);
 
     const payload = {
       date: today,
@@ -33,13 +35,18 @@ export function OccupancyForm({ today, existing }: OccupancyFormProps) {
       source: "manual" as const,
     };
 
+    let dbError;
     if (existing) {
-      await supabase.from("daily_occupancy").update(payload).eq("id", existing.id);
+      ({ error: dbError } = await supabase.from("daily_occupancy").update(payload).eq("id", existing.id));
     } else {
-      await supabase.from("daily_occupancy").upsert(payload, { onConflict: "date" });
+      ({ error: dbError } = await supabase.from("daily_occupancy").upsert(payload, { onConflict: "date" }));
     }
 
     setSaving(false);
+    if (dbError) {
+      setError(dbError.message);
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -86,6 +93,8 @@ export function OccupancyForm({ today, existing }: OccupancyFormProps) {
           className="bg-gray-800 border-gray-700 text-white"
         />
       </div>
+
+      {error && <p className="text-red-400 text-sm">{error}</p>}
 
       <Button
         type="submit"
