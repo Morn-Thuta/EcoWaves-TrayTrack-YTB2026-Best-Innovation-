@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ServiceTimer, STORAGE_KEY as SERVICE_KEY } from "@/components/chef/ServiceTimer";
 import type { DailyOccupancy } from "@/types/domain";
 
 interface OccupancyFormProps {
@@ -133,14 +132,6 @@ export function OccupancyForm({ today, existing }: OccupancyFormProps) {
         </Button>
       </form>
 
-      {/* Service end time */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-lg space-y-3">
-        <h3 className="text-white font-semibold">Service End Time</h3>
-        <p className="text-gray-500 text-sm">
-          Used for the chef countdown timer. Updates immediately on the chef screen.
-        </p>
-        <ServiceTimer editable={true} />
-      </div>
     </div>
   );
 }
@@ -153,6 +144,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-
-// Re-export for any legacy imports
-export { SERVICE_KEY };

@@ -112,9 +112,11 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
   return (
     <>
       <div className="space-y-4">
-        <Button onClick={openAdd} className="bg-green-700 hover:bg-green-600 text-white">
-          + Add Dish
-        </Button>
+        <div className="flex justify-end">
+          <Button onClick={openAdd} className="bg-green-700 hover:bg-green-600 text-white text-sm">
+            + Add Dish
+          </Button>
+        </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-800">
           <table className="w-full text-sm">

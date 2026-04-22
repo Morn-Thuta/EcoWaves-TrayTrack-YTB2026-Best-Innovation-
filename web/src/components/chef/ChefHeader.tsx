@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 
 interface TableAlert {
   id: string;
-  partySize: number;
+  note: string;
   time: string;
 }
 
@@ -25,8 +25,8 @@ export function ChefHeader() {
       .on("broadcast", { event: "table_arrived" }, ({ payload }) => {
         const alert: TableAlert = {
           id: `${Date.now()}`,
-          partySize: payload.partySize as number,
-          time: payload.time as string,
+          note: (payload.note as string) || `Table of ${payload.partySize} arrived`,
+          time: (payload.time as string) ?? new Date().toLocaleTimeString("en-SG", { hour: "2-digit", minute: "2-digit" }),
         };
         setTableAlerts((prev) => [alert, ...prev].slice(0, 3));
         // Auto-dismiss after 30 seconds
@@ -37,9 +37,7 @@ export function ChefHeader() {
       .subscribe();
 
     channelRef.current = channel;
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -55,18 +53,16 @@ export function ChefHeader() {
       {tableAlerts.map((alert) => (
         <div
           key={alert.id}
-          className="bg-blue-900 border-b border-blue-600 px-6 py-2 flex items-center justify-between"
+          className="bg-blue-900 border-b border-blue-700 px-6 py-2.5 flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
             <span className="text-blue-300 text-lg">🪑</span>
-            <span className="text-blue-100 font-bold text-sm">
-              Table of {alert.partySize} just arrived
-            </span>
+            <span className="text-blue-100 font-bold">{alert.note}</span>
             <span className="text-blue-400 text-xs">{alert.time}</span>
           </div>
           <button
             onClick={() => dismissAlert(alert.id)}
-            className="text-blue-400 hover:text-blue-200 text-xs font-semibold px-2"
+            className="text-blue-400 hover:text-blue-200 text-xs font-semibold px-2 ml-4"
           >
             ✕
           </button>
@@ -75,14 +71,12 @@ export function ChefHeader() {
 
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-white text-2xl font-black tracking-wide">
-            BREAKFAST BUFFET
-          </h1>
+          <h1 className="text-white text-2xl font-black tracking-wide">BREAKFAST BUFFET</h1>
           <p className="text-gray-400 text-sm">Live Tray Monitor</p>
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Service timer — display only, edit in Management */}
+          {/* Service timer — display only on chef, edit in Management */}
           <ServiceTimer editable={false} />
 
           {/* Current Pax */}

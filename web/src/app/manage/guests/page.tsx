@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { OccupancyForm } from "@/components/manage/OccupancyForm";
 import { TableArrivalPanel } from "@/components/manage/TableArrivalPanel";
+import { ServiceTimer } from "@/components/chef/ServiceTimer";
 import { CsvImporter } from "@/components/manage/CsvImporter";
 
 export const dynamic = "force-dynamic";
 
 export default async function ServicePage() {
   const supabase = await createClient();
-
   const today = new Date().toISOString().split("T")[0];
   const { data: todayRecord } = await supabase
     .from("daily_occupancy")
@@ -16,37 +16,56 @@ export default async function ServicePage() {
     .maybeSingle();
 
   return (
-    <div className="space-y-10 max-w-2xl">
+    <div className="space-y-4">
 
-      {/* Section 1: Current pax */}
-      <section>
-        <h2 className="text-white text-xl font-bold mb-1">Current Pax</h2>
-        <p className="text-gray-400 text-sm mb-5">
-          Enter today&apos;s guest count split by adults and children.
-          This immediately updates cook suggestions on the chef screen.
-        </p>
-        <OccupancyForm today={today} existing={todayRecord ?? null} />
-      </section>
+      {/* ── Row 1: Pax + Service Timer ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      {/* Section 2: Table arrival alert */}
-      <section>
-        <h2 className="text-white text-xl font-bold mb-1">Notify Chef of Table Arrival</h2>
-        <p className="text-gray-400 text-sm mb-5">
-          Push a real-time alert to the chef screen when a large group arrives.
-          Alert auto-dismisses after 30 seconds.
-        </p>
-        <TableArrivalPanel />
-      </section>
+        {/* Current Pax */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h2 className="text-white font-bold text-base mb-4 flex items-center gap-2">
+            <span className="text-green-400">👥</span> Current Pax
+          </h2>
+          <OccupancyForm today={today} existing={todayRecord ?? null} />
+        </div>
 
-      {/* Section 3: CSV import (moved from Import tab) */}
-      <section>
-        <h2 className="text-white text-xl font-bold mb-1">Import Guest Count Data</h2>
-        <p className="text-gray-400 text-sm mb-5">
-          Import historical guest counts from a CSV file.
-          Duplicates (same date) are automatically skipped.
-        </p>
-        <CsvImporter defaultType="daily_occupancy" />
-      </section>
+        {/* Service End Time */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h2 className="text-white font-bold text-base mb-4 flex items-center gap-2">
+            <span className="text-blue-400">🕐</span> Service Window
+          </h2>
+          <p className="text-gray-500 text-xs mb-4">
+            Countdown shown on the chef screen. Update before each service.
+          </p>
+          <ServiceTimer editable={true} />
+        </div>
+      </div>
+
+      {/* ── Row 2: Notify Chef + Import ────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Table arrival alert */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h2 className="text-white font-bold text-base mb-1 flex items-center gap-2">
+            <span className="text-blue-400">🪑</span> Notify Chef
+          </h2>
+          <p className="text-gray-500 text-xs mb-4">
+            Push an alert to the chef screen. Auto-dismisses in 30 seconds.
+          </p>
+          <TableArrivalPanel />
+        </div>
+
+        {/* CSV import */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h2 className="text-white font-bold text-base mb-1 flex items-center gap-2">
+            <span className="text-gray-400">📁</span> Import Guest Data
+          </h2>
+          <p className="text-gray-500 text-xs mb-4">
+            Import historical pax counts from a CSV. Duplicate dates are skipped.
+          </p>
+          <CsvImporter defaultType="daily_occupancy" />
+        </div>
+      </div>
 
     </div>
   );

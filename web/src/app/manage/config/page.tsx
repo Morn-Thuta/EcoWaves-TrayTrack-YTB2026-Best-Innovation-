@@ -15,27 +15,37 @@ export default async function ConfigPage() {
 
   return (
     <div className="space-y-10">
+
+      {/* ── Dish Configuration ──────────────────────────────────────────── */}
       <section>
-        <h2 className="text-white text-xl font-bold mb-4">Dish Configuration</h2>
-        <p className="text-gray-400 text-sm mb-6">
-          Set the full tray weight, cook trigger, and batch size for each dish.
-          These values determine when refill alerts and cook suggestions fire.
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-white text-xl font-bold">Dish Configuration</h2>
+            <p className="text-gray-400 text-sm mt-0.5">
+              Define each dish, its full tray weight, and whether it is active.
+            </p>
+          </div>
+        </div>
         <DishConfigTable initialDishes={dishes ?? []} />
       </section>
 
+      {/* ── Station Mapping ─────────────────────────────────────────────── */}
       <section>
-        <h2 className="text-white text-xl font-bold mb-4">Tray → Sensor → Dish Mapping</h2>
-        <p className="text-gray-400 text-sm mb-6">
-          Assign which physical sensor is in which tray, and which dish is currently on that tray.
-          Recalibrate the tare weight whenever you change trays.
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-white text-xl font-bold">Station Mapping</h2>
+            <p className="text-gray-400 text-sm mt-0.5">
+              Assign a dish and sensor to each physical tray station. Calibrate after swapping trays.
+            </p>
+          </div>
+        </div>
         <TrayMappingTable
           initialTrays={trays ?? []}
           dishes={dishes ?? []}
           sensors={sensors ?? []}
         />
       </section>
+
     </div>
   );
 }
