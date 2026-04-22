@@ -26,8 +26,12 @@ const IMPORT_CONFIGS: Record<ImportType, { label: string; requiredColumns: strin
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ParsedRow = Record<string, any>;
 
-export function CsvImporter() {
-  const [importType, setImportType] = useState<ImportType>("daily_occupancy");
+interface CsvImporterProps {
+  defaultType?: ImportType;
+}
+
+export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProps) {
+  const [importType, setImportType] = useState<ImportType>(defaultType);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedRow[]>([]);
   const [columns, setColumns] = useState<string[]>([]);

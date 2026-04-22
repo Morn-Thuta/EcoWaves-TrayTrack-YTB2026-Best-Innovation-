@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "service_end_time";
-const DEFAULT_END = "10:30";
+export const STORAGE_KEY = "service_end_time";
+export const DEFAULT_END = "10:30";
 
-function parseTime(hhmm: string): { h: number; m: number } {
+export function parseTime(hhmm: string): { h: number; m: number } {
   const [h, m] = hhmm.split(":").map(Number);
   return { h: h ?? 10, m: m ?? 30 };
 }
 
-function getMinutesRemaining(endTime: string): number {
+export function getMinutesRemaining(endTime: string): number {
   const now = new Date();
   const { h, m } = parseTime(endTime);
   const end = new Date(now);
@@ -27,27 +27,24 @@ function formatRemaining(minutes: number): string {
   return `${m}m left`;
 }
 
-export function ServiceTimer() {
+interface ServiceTimerProps {
+  /** If true, shows an edit control. False (default) = display only. */
+  editable?: boolean;
+}
+
+export function ServiceTimer({ editable = false }: ServiceTimerProps) {
   const [endTime, setEndTime] = useState<string>(DEFAULT_END);
   const [minutesLeft, setMinutesLeft] = useState<number>(0);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(DEFAULT_END);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const t = saved ?? DEFAULT_END;
     setEndTime(t);
     setDraft(t);
-    setMinutesLeft(getMinutesRemaining(t));
-
-    const interval = setInterval(() => {
-      setMinutesLeft(getMinutesRemaining(t));
-    }, 60000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Re-run ticker when endTime changes
   useEffect(() => {
     setMinutesLeft(getMinutesRemaining(endTime));
     const interval = setInterval(() => {
@@ -65,22 +62,25 @@ export function ServiceTimer() {
   }
 
   const color =
-    minutesLeft <= 0    ? "text-gray-500" :
-    minutesLeft < 15    ? "text-red-400" :
-    minutesLeft < 60    ? "text-amber-400" :
-                          "text-green-400";
+    minutesLeft <= 0 ? "text-gray-500" :
+    minutesLeft < 15 ? "text-red-400"  :
+    minutesLeft < 60 ? "text-amber-400" :
+                       "text-green-400";
 
   return (
     <div className="text-right">
       <span className="text-gray-400 text-xs uppercase tracking-wide block">Service ends</span>
-      {editing ? (
+
+      {editable && editing ? (
         <div className="flex items-center gap-1 justify-end mt-0.5">
           <input
-            ref={inputRef}
             type="time"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(false); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveEdit();
+              if (e.key === "Escape") setEditing(false);
+            }}
             className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-white text-sm w-24"
             autoFocus
           />
@@ -88,18 +88,18 @@ export function ServiceTimer() {
           <button onClick={() => setEditing(false)} className="text-gray-500 text-sm px-1">✕</button>
         </div>
       ) : (
-        <button
-          onClick={() => { setEditing(true); setDraft(endTime); }}
-          className="text-left group"
-          title="Click to change service end time"
+        <div
+          className={editable ? "cursor-pointer group" : ""}
+          onClick={editable ? () => { setEditing(true); setDraft(endTime); } : undefined}
+          title={editable ? "Click to change service end time" : undefined}
         >
-          <p className={`text-lg font-black ${color} group-hover:opacity-80`}>
+          <p className={`text-lg font-black ${color}${editable ? " group-hover:opacity-80" : ""}`}>
             {formatRemaining(minutesLeft)}
           </p>
-          <p className="text-gray-600 text-xs group-hover:text-gray-400">
-            ends {endTime} · click to edit
+          <p className="text-gray-600 text-xs">
+            ends {endTime}{editable ? " · click to edit" : ""}
           </p>
-        </button>
+        </div>
       )}
     </div>
   );

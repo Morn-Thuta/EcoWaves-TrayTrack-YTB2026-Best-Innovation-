@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/manage/config",       label: "Config",      icon: "⚙" },
-  { href: "/manage/guests",       label: "Guests",      icon: "👥" },
-  { href: "/manage/procurement",  label: "Procurement", icon: "🛒" },
-  { href: "/manage/analytics",    label: "Analytics",   icon: "📊" },
-  { href: "/manage/admin",        label: "Admin",       icon: "🔧" },
-  { href: "/manage/import",       label: "Import",      icon: "📁" },
+  { href: "/manage/config",    label: "Stations",  icon: "⚙" },
+  { href: "/manage/guests",    label: "Service",   icon: "🕐" },
+  { href: "/manage/analytics", label: "Analytics", icon: "📊" },
+  { href: "/manage/admin",     label: "Admin",     icon: "🔧" },
 ];
 
 export function TabNav() {

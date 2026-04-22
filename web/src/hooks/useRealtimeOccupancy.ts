@@ -4,21 +4,28 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface OccupancyData {
-  todayPax: number | null;
-  expectedPax: number | null;
-  actualPax: number | null;
+  todayPax:     number | null;
+  expectedPax:  number | null;
+  actualPax:    number | null;
+  adultCount:   number | null;
+  childCount:   number | null;
   recentAvgPax: number | null;
-  paxTrend: { arrow: string; label: string; color: string } | null;
+  paxTrend:     { arrow: string; label: string; color: string } | null;
 }
 
 export function useRealtimeOccupancy(): OccupancyData & { loading: boolean } {
-  const channelName = useRef(`occupancy-rt-${Math.random().toString(36).slice(2, 8)}`);
+  const channelName = useRef(
+    `occupancy-rt-${Math.random().toString(36).slice(2, 8)}`
+  );
+
   const [data, setData] = useState<OccupancyData>({
-    todayPax: null,
-    expectedPax: null,
-    actualPax: null,
+    todayPax:     null,
+    expectedPax:  null,
+    actualPax:    null,
+    adultCount:   null,
+    childCount:   null,
     recentAvgPax: null,
-    paxTrend: null,
+    paxTrend:     null,
   });
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -29,7 +36,8 @@ export function useRealtimeOccupancy(): OccupancyData & { loading: boolean } {
     const [{ data: todayRow }, { data: recentRows }] = await Promise.all([
       supabase
         .from("daily_occupancy")
-        .select("expected_pax, actual_pax")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select("expected_pax, actual_pax, adult_count, child_count" as any)
         .eq("date", today)
         .maybeSingle(),
       supabase
@@ -40,38 +48,49 @@ export function useRealtimeOccupancy(): OccupancyData & { loading: boolean } {
         .limit(7),
     ]);
 
-    const todayPax = todayRow?.actual_pax ?? todayRow?.expected_pax ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = todayRow as any;
+    const todayPax     = row?.actual_pax ?? row?.expected_pax ?? null;
+    const adultCount   = row?.adult_count   ?? null;
+    const childCount   = row?.child_count   ?? null;
 
-    // Compute 7-day average
-    const recent = (recentRows ?? []) as Array<{ actual_pax: number | null; expected_pax: number }>;
-    const paxValues = recent.map((r) => r.actual_pax ?? r.expected_pax).filter(Boolean) as number[];
-    const recentAvgPax = paxValues.length > 0
-      ? Math.round(paxValues.reduce((a, b) => a + b, 0) / paxValues.length)
-      : null;
+    // 7-day trailing average
+    const recent = (recentRows ?? []) as Array<{
+      actual_pax: number | null;
+      expected_pax: number;
+    }>;
+    const paxValues = recent
+      .map((r) => r.actual_pax ?? r.expected_pax)
+      .filter(Boolean) as number[];
+    const recentAvgPax =
+      paxValues.length > 0
+        ? Math.round(paxValues.reduce((a, b) => a + b, 0) / paxValues.length)
+        : null;
 
-    // Compute trend
     let paxTrend: OccupancyData["paxTrend"] = null;
     if (todayPax && recentAvgPax) {
       const ratio = todayPax / recentAvgPax;
-      if (ratio > 1.1)      paxTrend = { arrow: "\u2191", label: "Above avg", color: "text-green-400" };
-      else if (ratio < 0.9) paxTrend = { arrow: "\u2193", label: "Below avg", color: "text-amber-400" };
-      else                  paxTrend = { arrow: "\u2192", label: "Avg",        color: "text-gray-400" };
+      if (ratio > 1.1)      paxTrend = { arrow: "↑", label: "Above avg", color: "text-green-400" };
+      else if (ratio < 0.9) paxTrend = { arrow: "↓", label: "Below avg", color: "text-amber-400" };
+      else                  paxTrend = { arrow: "→", label: "Avg",        color: "text-gray-400" };
     }
 
     setData({
       todayPax,
-      expectedPax: todayRow?.expected_pax ?? null,
-      actualPax: todayRow?.actual_pax ?? null,
+      expectedPax:  row?.expected_pax ?? null,
+      actualPax:    row?.actual_pax   ?? null,
+      adultCount,
+      childCount,
       recentAvgPax,
       paxTrend,
     });
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchOccupancy();
 
-    // Subscribe to real-time changes on daily_occupancy
     const channel = supabase
       .channel(channelName.current)
       .on(
@@ -81,13 +100,13 @@ export function useRealtimeOccupancy(): OccupancyData & { loading: boolean } {
       )
       .subscribe();
 
-    // 30-second polling fallback
     const interval = setInterval(fetchOccupancy, 30000);
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(interval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchOccupancy]);
 
   return { ...data, loading };

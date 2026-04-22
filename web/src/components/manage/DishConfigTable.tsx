@@ -81,14 +81,8 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
         .select()
         .single();
 
-      if (dbError) {
-        setError(dbError.message);
-        setSaving(false);
-        return;
-      }
-      if (data) {
-        setDishes((prev) => prev.map((d) => (d.dish_id === data.dish_id ? data : d)));
-      }
+      if (dbError) { setError(dbError.message); setSaving(false); return; }
+      if (data) setDishes((prev) => prev.map((d) => (d.dish_id === data.dish_id ? data : d)));
     } else {
       const { data, error: dbError } = await supabase
         .from("dishes")
@@ -96,14 +90,8 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
         .select()
         .single();
 
-      if (dbError) {
-        setError(dbError.message);
-        setSaving(false);
-        return;
-      }
-      if (data) {
-        setDishes((prev) => [...prev, data]);
-      }
+      if (dbError) { setError(dbError.message); setSaving(false); return; }
+      if (data) setDishes((prev) => [...prev, data]);
     }
 
     setSaving(false);
@@ -118,9 +106,7 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
       .select()
       .single();
 
-    if (data) {
-      setDishes((prev) => prev.map((d) => (d.dish_id === data.dish_id ? data : d)));
-    }
+    if (data) setDishes((prev) => prev.map((d) => (d.dish_id === data.dish_id ? data : d)));
   }
 
   return (
@@ -136,34 +122,42 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
               <tr>
                 <th className="px-4 py-3 text-left">Dish</th>
                 <th className="px-4 py-3 text-left">Category</th>
+                <th className="px-4 py-3 text-left">Type</th>
                 <th className="px-4 py-3 text-right">Full Tray (kg)</th>
-                <th className="px-4 py-3 text-right">Trigger %</th>
-                <th className="px-4 py-3 text-right">Batch</th>
-                <th className="px-4 py-3 text-right">Cook (min)</th>
                 <th className="px-4 py-3 text-center">Active</th>
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {dishes.map((dish) => (
-                <tr key={dish.dish_id} className={`bg-gray-950 hover:bg-gray-900 ${!dish.is_active ? "opacity-50" : ""}`}>
+                <tr
+                  key={dish.dish_id}
+                  className={`bg-gray-950 hover:bg-gray-900 ${!dish.is_active ? "opacity-50" : ""}`}
+                >
                   <td className="px-4 py-3 text-white font-medium">{dish.name}</td>
                   <td className="px-4 py-3 text-gray-400">{dish.category ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-400 capitalize">
+                    {dish.dish_type ?? "cooked"}
+                  </td>
                   <td className="px-4 py-3 text-gray-300 text-right">
                     {(dish.full_tray_weight_grams / 1000).toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-right">
-                    {dish.cook_trigger_percent}%
-                  </td>
-                  <td className="px-4 py-3 text-gray-300 text-right">{dish.batch_size}</td>
-                  <td className="px-4 py-3 text-gray-300 text-right">
-                    {dish.average_cook_time_minutes}
-                  </td>
+                  {/* Toggle switch */}
                   <td className="px-4 py-3 text-center">
                     <button
                       onClick={() => toggleActive(dish)}
-                      className={`w-10 h-5 rounded-full transition-colors ${dish.is_active ? "bg-green-600" : "bg-gray-700"}`}
-                    />
+                      role="switch"
+                      aria-checked={dish.is_active}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                        dish.is_active ? "bg-green-600" : "bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          dish.is_active ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Button
@@ -179,7 +173,7 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
               ))}
               {dishes.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-600">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-600">
                     No dishes configured yet. Add your first dish above.
                   </td>
                 </tr>
@@ -190,19 +184,20 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Dish" : "Add Dish"}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
-            <Field label="Dish Name">
+            <Field label="Dish Name *">
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </Field>
+
             <div className="grid grid-cols-2 gap-4">
               <Field label="Category (e.g. Main)">
                 <Input
@@ -222,67 +217,25 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
                 </select>
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Full Tray Weight (kg)">
-                <Input
-                  type="number"
-                  min={0.1}
-                  step={0.1}
-                  value={form.full_tray_weight_grams / 1000}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      full_tray_weight_grams: parseFloat(e.target.value) * 1000,
-                    })
-                  }
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </Field>
-              <Field label="Cook Trigger (% remaining)">
-                <Input
-                  type="number"
-                  min={5}
-                  max={80}
-                  value={form.cook_trigger_percent}
-                  onChange={(e) =>
-                    setForm({ ...form, cook_trigger_percent: parseFloat(e.target.value) })
-                  }
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Batch Size (portions)">
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.batch_size}
-                  onChange={(e) =>
-                    setForm({ ...form, batch_size: parseInt(e.target.value) })
-                  }
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </Field>
-              <Field label="Cook Time (minutes)">
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.average_cook_time_minutes}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      average_cook_time_minutes: parseInt(e.target.value),
-                    })
-                  }
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </Field>
-            </div>
+
+            <Field label="Full Tray Weight (kg) *">
+              <Input
+                type="number"
+                min={0.1}
+                step={0.1}
+                value={form.full_tray_weight_grams / 1000}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    full_tray_weight_grams: parseFloat(e.target.value) * 1000,
+                  })
+                }
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+            </Field>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm px-1 pb-1">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm px-1 pb-1">{error}</p>}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="text-gray-400">
