@@ -20,6 +20,22 @@ interface TrayGridProps {
   historicalAvgPax: number | null;
 }
 
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl border-2 border-gray-800 bg-gray-900 p-4 min-h-[180px] flex gap-3 animate-pulse">
+      <div className="w-5 rounded-full bg-gray-800 flex-shrink-0" />
+      <div className="flex flex-col justify-between flex-1 gap-3">
+        <div className="h-5 w-16 rounded-full bg-gray-800" />
+        <div className="space-y-1.5">
+          <div className="h-5 w-3/4 rounded bg-gray-800" />
+          <div className="h-3 w-1/3 rounded bg-gray-800" />
+        </div>
+        <div className="h-10 w-24 rounded bg-gray-800" />
+      </div>
+    </div>
+  );
+}
+
 export function TrayGrid({ historicalAvgPax }: TrayGridProps) {
   const { trays, loading, lastUpdated } = useRealtimeTrays();
   const { todayPax } = useRealtimeOccupancy();
@@ -34,16 +50,30 @@ export function TrayGrid({ historicalAvgPax }: TrayGridProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400 text-xl">
-        Loading tray data...
+      <div className="space-y-6">
+        {/* Priority panel skeleton */}
+        <div className="h-11 rounded-xl bg-gray-900 animate-pulse" />
+        {/* Card skeletons */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (trays.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500 text-xl">
-        No active trays configured.
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
+        <span className="text-4xl opacity-30">📦</span>
+        <p className="text-gray-500 text-base font-medium">No active trays configured.</p>
+        <a
+          href="/manage/config"
+          className="text-green-400 hover:text-green-300 text-sm underline transition-colors"
+        >
+          Set up stations in Management →
+        </a>
       </div>
     );
   }
@@ -57,7 +87,6 @@ export function TrayGrid({ historicalAvgPax }: TrayGridProps) {
     depletionRateGramsPerMin: null,
   }));
 
-  // Cook suggestions
   const cookSuggestions = getAllCookSuggestions(trays, todayPax, historicalAvgPax);
 
   return (
@@ -75,8 +104,8 @@ export function TrayGrid({ historicalAvgPax }: TrayGridProps) {
       </div>
 
       {lastUpdated && (
-        <p className="text-gray-600 text-xs text-center">
-          Updated {lastUpdated.toLocaleTimeString()}
+        <p className="text-gray-700 text-xs text-center tabular-nums">
+          Last sync {lastUpdated.toLocaleTimeString("en-SG", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </p>
       )}
 

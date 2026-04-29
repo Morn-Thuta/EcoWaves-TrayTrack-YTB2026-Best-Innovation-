@@ -9,28 +9,34 @@ interface CookSuggestionPanelProps {
 
 const URGENCY_STYLE: Record<
   CookSuggestion["urgency"],
-  { bg: string; border: string; label: string; labelColor: string; kgColor: string }
+  {
+    card: string;
+    label: string;
+    labelColor: string;
+    kgColor: string;
+    pulse: boolean;
+  }
 > = {
   immediate: {
-    bg: "bg-red-950",
-    border: "border-red-600",
-    label: "COOK NOW",
+    card:       "bg-red-950 border-red-600/60 ring-1 ring-red-500/20",
+    label:      "COOK NOW",
     labelColor: "text-red-400",
-    kgColor: "text-red-100",
+    kgColor:    "text-red-100",
+    pulse:      true,
   },
   soon: {
-    bg: "bg-amber-950",
-    border: "border-amber-600",
-    label: "COOK SOON",
+    card:       "bg-amber-950 border-amber-600/50",
+    label:      "COOK SOON",
     labelColor: "text-amber-400",
-    kgColor: "text-amber-100",
+    kgColor:    "text-amber-100",
+    pulse:      false,
   },
   planned: {
-    bg: "bg-gray-900",
-    border: "border-gray-700",
-    label: "PREPARE",
+    card:       "bg-gray-900 border-gray-700/60",
+    label:      "PREPARE",
     labelColor: "text-gray-400",
-    kgColor: "text-gray-100",
+    kgColor:    "text-gray-100",
+    pulse:      false,
   },
 };
 
@@ -39,17 +45,20 @@ export function CookSuggestionPanel({ suggestions, todayPax }: CookSuggestionPan
 
   return (
     <div className="space-y-3">
-      <h2 className="text-gray-400 text-sm font-bold uppercase tracking-widest px-1">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 px-1">
         Cook Suggestions
       </h2>
 
       {/* No pax warning */}
       {todayPax === null && (
-        <div className="flex items-center gap-2 bg-amber-950 border border-amber-700 rounded-lg px-4 py-2 text-amber-300 text-sm">
-          <span className="text-lg">⚠</span>
+        <div className="flex items-center gap-2 bg-amber-950 border border-amber-700/60 rounded-xl px-4 py-3 text-amber-300 text-sm">
+          <span className="text-base">⚠</span>
           <span>
             No pax entered — quantities based on historical average only.{" "}
-            <a href="/manage/guests" className="underline font-semibold hover:text-amber-100">
+            <a
+              href="/manage/guests"
+              className="underline font-semibold hover:text-amber-100 transition-colors"
+            >
               Enter in Management →
             </a>
           </span>
@@ -62,16 +71,26 @@ export function CookSuggestionPanel({ suggestions, todayPax }: CookSuggestionPan
           return (
             <div
               key={s.trayId}
-              className={`${style.bg} border ${style.border} rounded-xl px-5 py-4 flex flex-col gap-2`}
+              className={`border-2 rounded-xl px-5 py-4 flex flex-col gap-2 transition-all duration-150 hover:brightness-110 active:scale-95 ${style.card}`}
             >
-              <span className={`text-xs font-black uppercase tracking-widest ${style.labelColor}`}>
+              {/* Urgency label — animate-pulse only for COOK NOW */}
+              <span
+                className={`text-xs font-black uppercase tracking-widest ${style.labelColor} ${
+                  style.pulse ? "animate-pulse" : ""
+                }`}
+              >
                 {style.label}
               </span>
-              <span className="text-white text-xl font-bold leading-tight">
+
+              {/* Dish name */}
+              <span className="text-white text-lg font-bold leading-tight">
                 {s.dishName}
               </span>
-              <span className={`text-4xl font-black ${style.kgColor}`}>
-                ~{s.recommendedWeightKg} kg
+
+              {/* Recommended kg — the hero number */}
+              <span className={`text-4xl font-black ${style.kgColor} leading-none`}>
+                ~{s.recommendedWeightKg}
+                <span className="text-xl font-bold opacity-70"> kg</span>
               </span>
             </div>
           );

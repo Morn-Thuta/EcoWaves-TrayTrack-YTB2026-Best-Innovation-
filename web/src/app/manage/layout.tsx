@@ -21,29 +21,30 @@ export default async function ManageLayout({
     .eq("user_id", user.id)
     .single();
 
-  // Chefs should be on the chef dashboard
   if (profile?.role === "chef") redirect("/chef");
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <h1 className="text-white text-xl font-black tracking-wide">
-            Tray Monitor — Management
+            Tray Monitor
           </h1>
+          <span className="text-gray-700 text-sm select-none">·</span>
+          <span className="text-gray-400 text-sm font-medium">Management</span>
           <Link
             href="/chef"
-            className="text-gray-400 hover:text-white text-sm border border-gray-700 hover:border-gray-500 px-3 py-1 rounded-lg transition-colors"
+            className="text-gray-400 hover:text-white text-sm border border-gray-700 hover:border-gray-500 px-3 py-1 rounded-lg transition-all duration-150 active:scale-95"
           >
             → Chef View
           </Link>
         </div>
         <div className="text-right">
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-300 text-sm font-medium">
             {profile?.display_name ?? user.email}
           </p>
-          <p className="text-gray-600 text-xs capitalize">{profile?.role}</p>
+          <p className="text-gray-600 text-xs capitalize mt-0.5">{profile?.role}</p>
         </div>
       </header>
 

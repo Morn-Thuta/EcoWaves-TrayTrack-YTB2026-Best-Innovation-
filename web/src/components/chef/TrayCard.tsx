@@ -2,14 +2,51 @@
 
 import type { TrayCardData, ColorCode } from "@/types/domain";
 
-const COLOR_MAP: Record<ColorCode, { bg: string; text: string; border: string; badge: string; bar: string; barBg: string }> = {
-  green: { bg: "bg-green-900",  text: "text-green-100",  border: "border-green-700",  badge: "bg-green-300 text-green-900", bar: "bg-green-400",  barBg: "bg-green-950" },
-  amber: { bg: "bg-amber-900",  text: "text-amber-100",  border: "border-amber-600",  badge: "bg-amber-500 text-white",     bar: "bg-amber-400",  barBg: "bg-amber-950" },
-  red:   { bg: "bg-red-900",    text: "text-red-100",    border: "border-red-600",    badge: "bg-red-600 text-white",       bar: "bg-red-500",    barBg: "bg-red-950"  },
-  grey:  { bg: "bg-gray-800",   text: "text-gray-300",   border: "border-gray-600",   badge: "bg-gray-600 text-white",      bar: "bg-gray-500",   barBg: "bg-gray-900" },
+const COLOR_MAP: Record<
+  ColorCode,
+  {
+    card: string;
+    text: string;
+    muted: string;
+    badge: string;
+    bar: string;
+    barBg: string;
+  }
+> = {
+  green: {
+    card:  "bg-green-950 border-green-600/50",
+    text:  "text-green-50",
+    muted: "text-green-300/50",
+    badge: "bg-green-400/10 border border-green-500/30 text-green-300",
+    bar:   "bg-green-400",
+    barBg: "bg-black/40",
+  },
+  amber: {
+    card:  "bg-amber-950 border-amber-600/50",
+    text:  "text-amber-50",
+    muted: "text-amber-300/50",
+    badge: "bg-amber-400/10 border border-amber-500/30 text-amber-300",
+    bar:   "bg-amber-400",
+    barBg: "bg-black/40",
+  },
+  red: {
+    card:  "bg-red-950 border-red-600/60 ring-1 ring-red-500/20",
+    text:  "text-red-50",
+    muted: "text-red-300/50",
+    badge: "bg-red-500/15 border border-red-500/40 text-red-300",
+    bar:   "bg-red-500",
+    barBg: "bg-black/40",
+  },
+  grey: {
+    card:  "bg-gray-800 border-gray-700/50",
+    text:  "text-gray-400",
+    muted: "text-gray-600",
+    badge: "bg-gray-700/50 border border-gray-600/30 text-gray-500",
+    bar:   "bg-gray-600",
+    barBg: "bg-black/40",
+  },
 };
 
-// Fill level labels
 const LEVEL_LABEL: Record<ColorCode, string> = {
   green: "HIGH",
   amber: "MEDIUM",
@@ -34,68 +71,89 @@ export function TrayCard({ tray, onClick }: TrayCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`relative rounded-2xl border-2 ${colors.bg} ${colors.border} p-4 flex gap-4 min-h-[180px]${onClick ? " cursor-pointer hover:brightness-110 transition-all" : ""}`}
+      className={[
+        "relative rounded-2xl border-2 flex gap-3 p-4 min-h-[180px]",
+        colors.card,
+        onClick
+          ? "cursor-pointer transition-all duration-150 hover:brightness-110 hover:scale-[1.01] active:scale-95"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      {/* ── Vertical fill bar (left) ─────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-        {/* Tick marks */}
-        <span className={`text-[10px] font-bold ${colors.text} opacity-40`}>F</span>
-        <div className={`relative w-6 flex-1 rounded-full ${colors.barBg} overflow-hidden`}>
-          {/* Fill rises from the bottom */}
+      {/* ── Vertical fill bar ────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center flex-shrink-0 w-5 py-0.5">
+        <div className={`relative w-full flex-1 rounded-full ${colors.barBg} overflow-hidden`}>
+          {/* Guide lines at 75 / 50 / 25 % */}
+          {[75, 50, 25].map((tick) => (
+            <div
+              key={tick}
+              className="absolute left-0 right-0 border-t border-white/10"
+              style={{ bottom: `${tick}%` }}
+            />
+          ))}
+          {/* Fill — rises from bottom; no own rounding, container clips */}
           <div
-            className={`absolute bottom-0 left-0 right-0 rounded-full transition-all duration-700 ${colors.bar}`}
+            className={`absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out ${colors.bar}`}
             style={{ height: `${pct}%` }}
           />
-          {/* 50% tick line */}
-          <div className="absolute left-0 right-0 border-t border-white/20" style={{ bottom: "50%" }} />
         </div>
-        <span className={`text-[10px] font-bold ${colors.text} opacity-40`}>E</span>
       </div>
 
-      {/* ── Main content (right of bar) ───────────────────────────────── */}
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <div className="flex flex-col justify-between flex-1 min-w-0">
-        {/* Top row: badge + time */}
-        <div className="flex items-start justify-between gap-2">
-          <span className={`text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full ${colors.badge}`}>
+        {/* Level badge + last-update */}
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${colors.badge}`}
+          >
             {LEVEL_LABEL[colorCode]}
           </span>
-          <span className={`text-xs ${colors.text} opacity-40 flex-shrink-0`}>
+          <span className={`text-[10px] ${colors.muted} flex-shrink-0`}>
             {lastUpdateSeconds < 60
               ? `${lastUpdateSeconds}s ago`
               : `${Math.floor(lastUpdateSeconds / 60)}m ago`}
           </span>
         </div>
 
-        {/* Dish name */}
-        <div className="mt-2">
-          <h2 className={`text-xl font-bold ${colors.text} leading-tight truncate`}>
-            {tray.dish_name}
+        {/* Dish name + location */}
+        <div className="flex-1 mt-2">
+          <h2 className={`text-lg font-bold ${colors.text} leading-tight line-clamp-2`}>
+            {tray.dish_name ?? "—"}
           </h2>
           {tray.location && (
-            <p className={`text-xs font-semibold ${colors.text} opacity-60 mt-0.5`}>
-              📍 {tray.location}
+            <p className={`text-xs ${colors.muted} mt-0.5 truncate`}>
+              {tray.location}
             </p>
           )}
         </div>
 
-        {/* Big percentage + kg */}
-        <div className="flex items-end gap-2 mt-auto pt-3">
+        {/* Percentage + weight */}
+        <div className="flex items-end gap-2 mt-2">
           <span className={`text-5xl font-black ${colors.text} leading-none`}>
             {Math.round(pct)}
-            <span className="text-xl font-bold">%</span>
+            <span className="text-xl font-bold opacity-60">%</span>
           </span>
-          <span className={`text-base font-bold ${colors.text} opacity-70 pb-1`}>
+          <span className={`text-sm font-semibold ${colors.muted} pb-1`}>
             {foodKg} kg
           </span>
         </div>
       </div>
 
-      {/* ── Stale overlay ─────────────────────────────────────────────── */}
+      {/* ── Stale overlay ────────────────────────────────────────────────── */}
       {tray.isStale && colorCode !== "grey" && (
-        <div className="absolute inset-0 rounded-2xl bg-black/60 flex flex-col items-center justify-center gap-2">
-          <span className="text-yellow-400 text-xl font-black tracking-widest">STALE DATA</span>
-          <span className="text-yellow-200 text-xs">
-            Last: {tray.last_updated_at ? new Date(tray.last_updated_at).toLocaleTimeString() : "—"}
+        <div className="absolute inset-0 rounded-2xl bg-black/65 flex flex-col items-center justify-center gap-1.5 backdrop-blur-sm">
+          <span className="text-yellow-400 text-2xl">⚠</span>
+          <span className="text-yellow-400 text-sm font-black tracking-widest">
+            STALE DATA
+          </span>
+          <span className="text-yellow-200/60 text-xs">
+            {tray.last_updated_at
+              ? new Date(tray.last_updated_at).toLocaleTimeString("en-SG", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—"}
           </span>
         </div>
       )}

@@ -89,9 +89,11 @@ export function ServiceTimer({ editable = false }: ServiceTimerProps) {
         {/* Big time display */}
         <div className="flex items-end gap-3">
           <span className={`text-5xl font-black ${text}`}>
-            {formatRemaining(minutesLeft)}
+            {minutesLeft <= 0 ? "Ended" : formatRemaining(minutesLeft)}
           </span>
-          <span className="text-gray-500 text-sm pb-1.5">left</span>
+          {minutesLeft > 0 && (
+            <span className="text-gray-500 text-sm pb-1.5">left</span>
+          )}
         </div>
 
         {/* Progress bar: time remaining */}
@@ -139,8 +141,12 @@ export function ServiceTimer({ editable = false }: ServiceTimerProps) {
   // ── Chef header (compact, display only) ─────────────────────────────────
   return (
     <div className="text-right">
-      <span className="text-gray-400 text-xs uppercase tracking-wide block">Service ends</span>
-      <p className={`text-lg font-black ${text}`}>{formatRemaining(minutesLeft)} left</p>
+      <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 block">
+        Service ends
+      </span>
+      <p className={`text-lg font-black ${text}`}>
+        {minutesLeft <= 0 ? "Ended" : `${formatRemaining(minutesLeft)} left`}
+      </p>
       <p className="text-gray-600 text-xs">ends {endTime}</p>
     </div>
   );
