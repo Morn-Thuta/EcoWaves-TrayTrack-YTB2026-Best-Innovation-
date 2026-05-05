@@ -21,7 +21,7 @@ export function TableArrivalPanel() {
       const channel = supabase.channel("service-alerts");
 
       await new Promise<void>((resolve, reject) => {
-        channel.subscribe((status) => {
+        channel.subscribe((status: string) => {
           if (status === "SUBSCRIBED") resolve();
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") reject(new Error(status));
         });

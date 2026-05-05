@@ -26,11 +26,11 @@ export default async function ChefDashboardPage() {
   const historicalAvgPax = await getHistoricalAvgPax();
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="h-dvh overflow-hidden bg-gray-950 flex flex-col">
       <ChefHeader />
 
-      {/* Main content */}
-      <main className="flex-1 p-6">
+      {/* Main content — flex-1 + min-h-0 prevents overflow */}
+      <main className="flex-1 min-h-0 p-4">
         <TrayGrid historicalAvgPax={historicalAvgPax} />
       </main>
     </div>

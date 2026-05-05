@@ -1,147 +1,89 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { ServiceTimer } from "./ServiceTimer";
+import { useState, useEffect } from "react";
 import { useRealtimeOccupancy } from "@/hooks/useRealtimeOccupancy";
-import { createClient } from "@/lib/supabase/client";
-
-interface TableAlert {
-  id: string;
-  note: string;
-  time: string;
-}
+import { getMinutesRemaining, STORAGE_KEY, DEFAULT_END } from "./ServiceTimer";
 
 export function ChefHeader() {
-  const { todayPax, adultCount, childCount, paxTrend, loading } = useRealtimeOccupancy();
-  const [tableAlerts, setTableAlerts] = useState<TableAlert[]>([]);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
-  const supabase = createClient();
+  const { todayPax, loading } = useRealtimeOccupancy();
+  const [clock, setClock] = useState("");
+  const [serviceEnd, setServiceEnd] = useState(DEFAULT_END);
+  const [serviceMinLeft, setServiceMinLeft] = useState(0);
 
+  // Clock — updates every second
   useEffect(() => {
-    const channel = supabase
-      .channel("service-alerts")
-      .on("broadcast", { event: "table_arrived" }, ({ payload }) => {
-        const alert: TableAlert = {
-          id: `${Date.now()}`,
-          note:
-            (payload.note as string) ||
-            `Table of ${payload.partySize} arrived`,
-          time:
-            (payload.time as string) ??
-            new Date().toLocaleTimeString("en-SG", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-        };
-        setTableAlerts((prev) => [alert, ...prev].slice(0, 3));
-        // Auto-dismiss after 30 seconds
-        setTimeout(() => {
-          setTableAlerts((prev) => prev.filter((a) => a.id !== alert.id));
-        }, 30000);
-      })
-      .subscribe();
-
-    channelRef.current = channel;
-    return () => {
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    function tick() {
+      setClock(
+        new Date().toLocaleTimeString("en-SG", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, []);
 
-  function dismissAlert(id: string) {
-    setTableAlerts((prev) => prev.filter((a) => a.id !== id));
-  }
+  // Service end time from localStorage (shared with management ServiceTimer)
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_END;
+    setServiceEnd(saved);
+    setServiceMinLeft(getMinutesRemaining(saved));
 
-  const showAdultChild = adultCount !== null || childCount !== null;
+    const id = setInterval(() => {
+      const s = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_END;
+      setServiceEnd(s);
+      setServiceMinLeft(getMinutesRemaining(s));
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const serviceColor =
+    serviceMinLeft <= 0
+      ? "text-gray-500"
+      : serviceMinLeft < 15
+        ? "text-red-400"
+        : serviceMinLeft < 60
+          ? "text-amber-400"
+          : "text-green-400";
 
   return (
-    <div>
-      {/* ── Table arrival alerts (slide down from top) ─────────────────── */}
-      <div className="overflow-hidden">
-        {tableAlerts.map((alert) => (
-          <div
-            key={alert.id}
-            className="animate-slide-down bg-blue-900/90 border-b border-blue-600/50 px-6 py-2.5 flex items-center justify-between backdrop-blur-sm"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-blue-300 text-lg flex-shrink-0">🪑</span>
-              <span className="text-blue-100 font-bold">{alert.note}</span>
-              <span className="text-blue-400/70 text-xs font-medium">{alert.time}</span>
-            </div>
-            <button
-              onClick={() => dismissAlert(alert.id)}
-              className="text-blue-400 hover:text-blue-100 text-sm font-bold px-2 ml-4 transition-colors duration-150 active:scale-95"
-              aria-label="Dismiss alert"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+    <header className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-5 h-11 flex items-center justify-between gap-6">
+      {/* Left: meal label */}
+      <span className="text-gray-400 text-sm font-bold tracking-widest uppercase flex-shrink-0">
+        Breakfast
+      </span>
+
+      {/* Service end */}
+      <span className={`text-xs font-semibold flex-shrink-0 ${serviceColor}`}>
+        {serviceMinLeft <= 0 ? "Service ended" : `ends ${serviceEnd}`}
+      </span>
+
+      {/* Center: clock */}
+      <span className="text-white text-lg font-black tabular-nums tracking-wide">
+        {clock}
+      </span>
+
+      {/* Pax */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+          Pax
+        </span>
+        {loading ? (
+          <span className="w-8 h-5 bg-gray-800 rounded animate-pulse" />
+        ) : (
+          <span className="text-white text-lg font-black tabular-nums">
+            {todayPax ?? "—"}
+          </span>
+        )}
       </div>
 
-      {/* ── Main header bar ────────────────────────────────────────────── */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between gap-4">
-        {/* Left: title */}
-        <div>
-          <h1 className="text-white text-2xl font-black tracking-wide">
-            BREAKFAST BUFFET
-          </h1>
-          <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest mt-0.5">
-            Live Tray Monitor
-          </p>
-        </div>
-
-        {/* Right: service timer + pax + nav */}
-        <div className="flex items-center gap-6">
-          {/* Service timer (display-only on chef) */}
-          <ServiceTimer editable={false} />
-
-          {/* Current Pax */}
-          <div className="text-right">
-            <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 block">
-              Current Pax
-            </span>
-            {loading ? (
-              <div className="h-8 w-16 bg-gray-800 animate-pulse rounded mt-1" />
-            ) : todayPax ? (
-              <div className="flex flex-col items-end gap-0.5">
-                <div className="flex items-baseline gap-2">
-                  <p className="text-white text-3xl font-black leading-none">{todayPax}</p>
-                  {paxTrend && (
-                    <span className={`text-sm font-bold ${paxTrend.color}`}>
-                      {paxTrend.arrow} {paxTrend.label}
-                    </span>
-                  )}
-                </div>
-                {showAdultChild && (
-                  <p className="text-gray-500 text-xs">
-                    {adultCount ?? "—"} Adults · {childCount ?? "—"} Children
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm mt-0.5">
-                Not set —{" "}
-                <Link
-                  href="/manage/guests"
-                  className="text-green-400 hover:text-green-300 underline transition-colors"
-                >
-                  enter here
-                </Link>
-              </p>
-            )}
-          </div>
-
-          {/* Management link */}
-          <Link
-            href="/manage/config"
-            className="text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-all duration-150 active:scale-95"
-          >
-            ← Manage
-          </Link>
-        </div>
-      </header>
-    </div>
+      {/* Sync dot */}
+      <span className="relative flex h-2 w-2 flex-shrink-0" title="Live data">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+      </span>
+    </header>
   );
 }
