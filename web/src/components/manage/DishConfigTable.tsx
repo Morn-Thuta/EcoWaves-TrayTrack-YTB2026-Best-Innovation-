@@ -111,62 +111,90 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <Button onClick={openAdd} className="bg-green-700 hover:bg-green-600 text-white text-sm">
-            + Add Dish
+      <div className="space-y-3">
+        {/* Single compact header row: title + helper left, action right */}
+        <div className="flex items-end justify-between gap-6 pb-2 border-b border-ink-3">
+          <div>
+            <h2 className="text-ink-8 text-[15px] font-semibold tracking-tight">
+              Dish Configuration
+            </h2>
+            <p className="text-ink-6 text-[13px] mt-0.5">
+              Each dish has a full-tray weight and cook trigger threshold.
+            </p>
+          </div>
+          <Button
+            onClick={openAdd}
+            className="bg-accent hover:bg-accent-dim text-ink-0 text-[13px] font-semibold h-8 px-3 rounded-md transition-colors duration-150 active:scale-95 shrink-0"
+          >
+            <span className="mr-1">+</span> Add Dish
           </Button>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-800">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-900 text-gray-400 uppercase text-xs tracking-wide">
+        <div className="overflow-x-auto rounded-xl border border-ink-3">
+          <table className="w-full text-[15px]">
+            <thead className="bg-ink-1 text-ink-6 uppercase text-[12px] font-semibold tracking-wide">
               <tr>
-                <th className="px-4 py-3 text-left">Dish</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-right">Full Tray (kg)</th>
-                <th className="px-4 py-3 text-center">Active</th>
-                <th className="px-4 py-3 text-center">Actions</th>
+                <th className="px-5 py-3 text-left">Dish</th>
+                <th className="px-5 py-3 text-left">Category</th>
+                <th className="px-5 py-3 text-left">Type</th>
+                <th className="px-5 py-3 text-right">Full Tray (kg)</th>
+                <th className="px-5 py-3 text-center">Active</th>
+                <th className="px-5 py-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-ink-3">
               {dishes.map((dish) => (
                 <tr
                   key={dish.dish_id}
-                  className={`bg-gray-950 hover:bg-gray-900 ${!dish.is_active ? "opacity-50" : ""}`}
+                  className={`bg-ink-2 hover:bg-ink-3 transition-colors duration-150 ${
+                    !dish.is_active ? "opacity-50" : ""
+                  }`}
                 >
-                  <td className="px-4 py-3 text-white font-medium">{dish.name}</td>
-                  <td className="px-4 py-3 text-gray-400">{dish.category ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-400 capitalize">
+                  <td className="px-5 py-3.5 text-ink-8 font-medium">{dish.name}</td>
+                  <td className="px-5 py-3.5 text-ink-6">{dish.category ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-ink-6 capitalize">
                     {dish.dish_type ?? "cooked"}
                   </td>
-                  <td className="px-4 py-3 text-gray-300 text-right">
+                  <td className="px-5 py-3.5 text-ink-7 text-right font-mono tabular">
                     {(dish.full_tray_weight_grams / 1000).toFixed(1)}
                   </td>
-                  {/* Toggle switch */}
-                  <td className="px-4 py-3 text-center">
+                  {/* Toggle switch — compact, inline styles for guaranteed render */}
+                  <td className="px-5 py-3.5 text-center">
                     <button
                       onClick={() => toggleActive(dish)}
                       role="switch"
                       aria-checked={dish.is_active}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        dish.is_active ? "bg-green-600" : "bg-gray-700"
-                      }`}
+                      className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.70_0.18_160)]/40"
+                      style={{
+                        backgroundColor: dish.is_active
+                          ? "oklch(0.70 0.18 160)"          // emerald track
+                          : "oklch(0.22 0.010 240)",        // dark ink-3 track
+                        boxShadow: dish.is_active
+                          ? "none"
+                          : "inset 0 0 0 1px oklch(0.30 0.010 240)",  // subtle inner border when off
+                        transition: "background-color 150ms ease",
+                      }}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                          dish.is_active ? "translate-x-6" : "translate-x-1"
-                        }`}
+                        className="inline-block h-3.5 w-3.5 rounded-full shadow"
+                        style={{
+                          backgroundColor: dish.is_active
+                            ? "oklch(0.96 0.003 240)"        // bright knob on emerald
+                            : "oklch(0.62 0.008 240)",       // muted knob when off
+                          transform: dish.is_active
+                            ? "translateX(18px)"
+                            : "translateX(3px)",
+                          transition: "transform 150ms ease, background-color 150ms ease",
+                        }}
                       />
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-5 py-3.5 text-center">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => openEdit(dish)}
-                      className="text-gray-400 hover:text-white"
+                      className="text-ink-6 hover:text-ink-8 hover:bg-ink-3 h-8 text-[13px] font-medium"
                     >
                       Edit
                     </Button>
@@ -175,7 +203,7 @@ export function DishConfigTable({ initialDishes }: DishConfigTableProps) {
               ))}
               {dishes.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-600">
+                  <td colSpan={6} className="px-4 py-10 text-center text-ink-6 text-sm">
                     No dishes configured yet. Add your first dish above.
                   </td>
                 </tr>

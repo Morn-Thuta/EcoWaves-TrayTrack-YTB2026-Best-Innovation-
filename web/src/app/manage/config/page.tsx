@@ -14,38 +14,18 @@ export default async function ConfigPage() {
   ]);
 
   return (
-    <div className="space-y-10">
-
-      {/* ── Dish Configuration ──────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h2 className="text-white text-xl font-bold">Dish Configuration</h2>
-            <p className="text-gray-400 text-sm mt-0.5">
-              Define each dish, its full tray weight, and whether it is active.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-8">
+      <section id="tour-dish-config">
         <DishConfigTable initialDishes={dishes ?? []} />
       </section>
 
-      {/* ── Station Mapping ─────────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h2 className="text-white text-xl font-bold">Station Mapping</h2>
-            <p className="text-gray-400 text-sm mt-0.5">
-              Assign a dish and sensor to each physical tray station. Calibrate after swapping trays.
-            </p>
-          </div>
-        </div>
+      <section id="tour-station-mapping">
         <TrayMappingTable
           initialTrays={trays ?? []}
           dishes={dishes ?? []}
           sensors={sensors ?? []}
         />
       </section>
-
     </div>
   );
 }

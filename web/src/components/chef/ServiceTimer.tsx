@@ -28,10 +28,10 @@ function formatRemaining(minutes: number): string {
 }
 
 function urgencyColor(minutes: number) {
-  if (minutes <= 0)  return { text: "text-gray-500", ring: "border-gray-700",  bg: "bg-gray-800" };
-  if (minutes < 15)  return { text: "text-red-400",  ring: "border-red-700",   bg: "bg-red-950"  };
-  if (minutes < 60)  return { text: "text-amber-400",ring: "border-amber-700", bg: "bg-amber-950"};
-  return              { text: "text-green-400",       ring: "border-green-700", bg: "bg-green-950"};
+  if (minutes <= 0)  return { text: "text-ink-6",    ring: "border-ink-4",     bar: "bg-ink-5"     };
+  if (minutes < 15)  return { text: "text-red-400",  ring: "border-red-500/30",   bar: "bg-red-500"   };
+  if (minutes < 60)  return { text: "text-amber-400",ring: "border-amber-500/30", bar: "bg-amber-400" };
+  return              { text: "text-accent",          ring: "border-accent/30",    bar: "bg-accent"    };
 }
 
 interface ServiceTimerProps {
@@ -65,75 +65,79 @@ export function ServiceTimer({ editable = false }: ServiceTimerProps) {
     setEditing(false);
   }
 
-  const { text, ring, bg } = urgencyColor(minutesLeft);
+  const { text, bar } = urgencyColor(minutesLeft);
   const pctLeft = minutesLeft <= 0 ? 0 : Math.min(100, (minutesLeft / 240) * 100); // 4h = full
 
   if (editable) {
-    // ── Management card ──────────────────────────────────────────────────────
+    const ended = minutesLeft <= 0;
+    // ── Management view (content only, parent provides section frame) ──────
     return (
-      <div className={`rounded-xl border ${ring} ${bg} p-5 space-y-4`}>
-        <div className="flex items-center justify-between">
-          <p className="text-gray-400 text-xs uppercase tracking-widest font-semibold">
-            Service End Time
-          </p>
-          {!editing && (
-            <button
-              onClick={() => { setEditing(true); setDraft(endTime); }}
-              className="text-xs text-gray-400 hover:text-white border border-gray-700 rounded px-2 py-0.5 transition-colors"
-            >
-              ✎ Edit
-            </button>
+      <div className="flex flex-col gap-3 flex-1">
+        {/* ── HERO: time remaining ───────────────────────────────────── */}
+        <div className="flex items-baseline gap-3 -mt-1">
+          {ended ? (
+            <span className="inline-flex items-center gap-2 mt-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-ink-5" />
+              <span className="text-ink-6 text-base font-medium">Service ended</span>
+            </span>
+          ) : (
+            <>
+              <span className={`text-6xl font-bold tabular font-mono leading-none tracking-tight ${text}`}>
+                {formatRemaining(minutesLeft)}
+              </span>
+              <span className="text-ink-6 text-sm">left</span>
+            </>
           )}
         </div>
 
-        {/* Big time display */}
-        <div className="flex items-end gap-3">
-          <span className={`text-5xl font-black ${text}`}>
-            {minutesLeft <= 0 ? "Ended" : formatRemaining(minutesLeft)}
-          </span>
-          {minutesLeft > 0 && (
-            <span className="text-gray-500 text-sm pb-1.5">left</span>
-          )}
-        </div>
+        {/* Subtext: ends at HH:MM */}
+        <p className="text-ink-6 text-[12px] -mt-2">
+          {ended ? "Ended at " : "Ends at "}
+          <span className="text-ink-7 font-mono tabular">{endTime}</span>
+        </p>
 
-        {/* Progress bar: time remaining */}
-        <div className="w-full h-2 rounded-full bg-black/40 overflow-hidden">
+        {/* Progress bar — fine, instrument-like */}
+        <div className="w-full h-1 rounded-full bg-ink-3 overflow-hidden mt-1">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              minutesLeft < 15 ? "bg-red-500" : minutesLeft < 60 ? "bg-amber-400" : "bg-green-400"
-            }`}
+            className={`h-full rounded-full transition-all duration-700 ease-out ${bar}`}
             style={{ width: `${pctLeft}%` }}
           />
         </div>
 
-        <p className="text-gray-500 text-xs">
-          Ends at <span className="text-gray-300 font-semibold">{endTime}</span>
-        </p>
-
-        {editing && (
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="time"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(false); }}
-              className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500"
-              autoFocus
-            />
+        {/* Edit / form footer */}
+        <div className="flex items-center gap-2 mt-auto pt-2">
+          {editing ? (
+            <>
+              <input
+                type="time"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(false); }}
+                className="bg-ink-2 border border-ink-3 rounded-md px-3 h-9 text-ink-8 text-[14px] font-mono tabular focus:outline-none focus:border-[oklch(0.70_0.18_160)]"
+                autoFocus
+              />
+              <button
+                onClick={saveEdit}
+                className="inline-flex items-center h-9 px-4 rounded-md bg-[oklch(0.70_0.18_160)] hover:bg-[oklch(0.62_0.17_160)] text-ink-0 text-[13px] font-semibold transition-colors duration-150 active:scale-95"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="text-ink-6 hover:text-ink-8 text-[13px] font-medium h-9 px-3"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
             <button
-              onClick={saveEdit}
-              className="bg-green-700 hover:bg-green-600 text-white text-sm font-bold px-3 py-2 rounded-lg transition-colors"
+              onClick={() => { setEditing(true); setDraft(endTime); }}
+              className="inline-flex items-center h-8 px-3 rounded-md border border-ink-3 hover:border-ink-4 text-ink-7 hover:text-ink-8 text-[13px] font-medium transition-colors duration-150 active:scale-95"
             >
-              Save
+              Set end time
             </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="text-gray-500 hover:text-gray-300 text-sm px-2 py-2"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }

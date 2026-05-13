@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 
 export function TableArrivalPanel() {
   const [note, setNote] = useState("");
@@ -56,36 +55,37 @@ export function TableArrivalPanel() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3 flex-1">
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAlert(); }
         }}
-        placeholder='e.g. "6 Adults 3 Children just arrived" or "Large group at table 4"'
-        rows={2}
-        className="w-full rounded-xl bg-gray-800 border border-gray-700 text-white px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 placeholder:text-gray-600"
+        placeholder='e.g. "6 Adults 3 Children just arrived"'
+        rows={3}
+        className="w-full rounded-lg bg-ink-2 border border-ink-3 text-ink-8 px-3.5 py-2.5 text-[14px] resize-none focus:outline-none focus:border-blue-500/60 placeholder:text-ink-5"
       />
 
-      <Button
+      {/* Plain button — emerald when sent, blue (info) otherwise */}
+      <button
         onClick={sendAlert}
         disabled={sending || !note.trim()}
-        className={`w-full font-bold py-3 transition-colors ${
+        className={[
+          "w-full h-9 rounded-md text-[13px] font-semibold transition-colors duration-150 active:scale-[0.99]",
+          "disabled:opacity-60 disabled:active:scale-100",
           sent
-            ? "bg-green-700 hover:bg-green-700 text-white"
-            : "bg-blue-700 hover:bg-blue-600 text-white"
-        }`}
+            ? "bg-[oklch(0.70_0.18_160)] text-ink-0"
+            : "bg-[oklch(0.65_0.18_230)] hover:bg-[oklch(0.58_0.17_230)] text-ink-0",
+        ].join(" ")}
       >
-        {sending ? "Sending..." : sent ? "✓ Chef Notified" : "🪑 Notify Chef Screen"}
-      </Button>
+        {sending ? "Sending…" : sent ? "✓ Chef Notified" : "Notify Chef Screen"}
+      </button>
 
-      {error && (
-        <p className="text-red-400 text-sm">{error}</p>
-      )}
+      {error && <p className="text-red-400 text-[12px]">{error}</p>}
 
-      <p className="text-gray-600 text-xs">
-        Appears on the chef screen for 30 seconds · Press Enter to send
+      <p className="text-ink-6 text-[11px] mt-auto">
+        Appears on chef screen for 30s · Press Enter to send
       </p>
     </div>
   );

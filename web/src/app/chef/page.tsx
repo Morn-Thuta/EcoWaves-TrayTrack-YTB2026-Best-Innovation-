@@ -26,7 +26,7 @@ export default async function ChefDashboardPage() {
   const historicalAvgPax = await getHistoricalAvgPax();
 
   return (
-    <div className="h-dvh overflow-hidden bg-gray-950 flex flex-col">
+    <div className="h-dvh overflow-hidden bg-ink-0 flex flex-col">
       <ChefHeader />
 
       {/* Main content — flex-1 + min-h-0 prevents overflow */}

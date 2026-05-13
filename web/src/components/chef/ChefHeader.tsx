@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRealtimeOccupancy } from "@/hooks/useRealtimeOccupancy";
 import { getMinutesRemaining, STORAGE_KEY, DEFAULT_END } from "./ServiceTimer";
+import { BrandMark } from "@/components/manage/BrandMark";
 
 export function ChefHeader() {
   const { todayPax, loading } = useRealtimeOccupancy();
@@ -49,11 +50,14 @@ export function ChefHeader() {
           : "text-green-400";
 
   return (
-    <header className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-5 h-11 flex items-center justify-between gap-6">
-      {/* Left: meal label */}
-      <span className="text-gray-400 text-sm font-bold tracking-widest uppercase flex-shrink-0">
-        Breakfast
-      </span>
+    <header className="flex-shrink-0 bg-ink-1 border-b border-ink-3 px-5 h-11 flex items-center justify-between gap-6">
+      {/* Left: brand mark + meal label */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <BrandMark size={18} />
+        <span className="text-ink-6 text-sm font-bold tracking-widest uppercase">
+          Breakfast
+        </span>
+      </div>
 
       {/* Service end */}
       <span className={`text-xs font-semibold flex-shrink-0 ${serviceColor}`}>

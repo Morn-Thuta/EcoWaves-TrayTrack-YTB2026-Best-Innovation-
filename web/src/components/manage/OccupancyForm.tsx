@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { DailyOccupancy } from "@/types/domain";
@@ -75,71 +74,76 @@ export function OccupancyForm({ today, existing }: OccupancyFormProps) {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  // Live breakdown caption
+  const breakdown =
+    totalPax > 0
+      ? `${adults || 0} adults · ${children || 0} children`
+      : "Enter today's guest count below";
+
   return (
-    <div className="space-y-6">
-      {/* Pax entry */}
-      <form
-        onSubmit={handleSave}
-        className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-lg space-y-5"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-white font-semibold">Today — {today}</h3>
-          {totalPax > 0 && (
-            <span className="text-green-400 font-black text-xl">{totalPax} total</span>
-          )}
-        </div>
+    <form onSubmit={handleSave} className="flex flex-col gap-4 flex-1">
+      {/* ── HERO: big live total ─────────────────────────────────────── */}
+      <div className="flex items-baseline gap-3 -mt-1">
+        <span className="text-ink-8 text-6xl font-bold tabular font-mono leading-none tracking-tight">
+          {totalPax > 0 ? totalPax : "—"}
+        </span>
+        <span className="text-ink-6 text-sm">pax</span>
+      </div>
+      <p className="text-ink-6 text-[12px] -mt-2">{breakdown}</p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Adults">
-            <Input
-              type="number"
-              min={0}
-              value={adultCount}
-              onChange={(e) => setAdultCount(e.target.value)}
-              placeholder="e.g. 80"
-              className="bg-gray-800 border-gray-700 text-white"
-            />
-          </Field>
-          <Field label="Children">
-            <Input
-              type="number"
-              min={0}
-              value={childCount}
-              onChange={(e) => setChildCount(e.target.value)}
-              placeholder="e.g. 20"
-              className="bg-gray-800 border-gray-700 text-white"
-            />
-          </Field>
-        </div>
-
-        <Field label="Notes (optional)">
+      {/* ── Adult / Child grid ───────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Adults">
           <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Group booking, school holiday"
-            className="bg-gray-800 border-gray-700 text-white"
+            type="number"
+            min={0}
+            value={adultCount}
+            onChange={(e) => setAdultCount(e.target.value)}
+            placeholder="0"
+            className="bg-ink-2 border-ink-3 text-ink-8 placeholder:text-ink-5 h-9 text-[14px] font-mono tabular"
           />
         </Field>
+        <Field label="Children">
+          <Input
+            type="number"
+            min={0}
+            value={childCount}
+            onChange={(e) => setChildCount(e.target.value)}
+            placeholder="0"
+            className="bg-ink-2 border-ink-3 text-ink-8 placeholder:text-ink-5 h-9 text-[14px] font-mono tabular"
+          />
+        </Field>
+      </div>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+      <Field label="Notes (optional)">
+        <Input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. Group booking, school holiday"
+          className="bg-ink-2 border-ink-3 text-ink-8 placeholder:text-ink-5 h-9 text-[14px]"
+        />
+      </Field>
 
-        <Button
-          type="submit"
-          disabled={saving}
-          className="bg-green-700 hover:bg-green-600 text-white"
-        >
-          {saving ? "Saving..." : saved ? "✓ Saved" : "Save Guest Count"}
-        </Button>
-      </form>
+      {error && <p className="text-red-400 text-[12px]">{error}</p>}
 
-    </div>
+      {/* Plain button — avoids shadcn Button's bg-primary fallback */}
+      <button
+        type="submit"
+        disabled={saving}
+        className="self-start inline-flex items-center h-9 px-4 rounded-md bg-[oklch(0.70_0.18_160)] hover:bg-[oklch(0.62_0.17_160)] text-ink-0 text-[13px] font-semibold transition-colors duration-150 active:scale-95 disabled:opacity-60 disabled:active:scale-100"
+      >
+        {saving ? "Saving…" : saved ? "✓ Saved" : "Save Guest Count"}
+      </button>
+    </form>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <Label className="text-gray-400 text-xs">{label}</Label>
+      <Label className="text-ink-6 text-[11px] font-medium uppercase tracking-wide">
+        {label}
+      </Label>
       {children}
     </div>
   );

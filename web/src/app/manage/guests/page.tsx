@@ -16,57 +16,67 @@ export default async function ServicePage() {
     .maybeSingle();
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-min">
 
-      {/* ── Row 1: Pax + Service Timer ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ── TILE 1 — Pax (large, primary) ────────────────────────────── */}
+      <Tile id="tour-current-pax" className="lg:col-span-7 lg:row-span-2">
+        <TileHead label="Pax Today" />
+        <OccupancyForm today={today} existing={todayRecord ?? null} />
+      </Tile>
 
-        {/* Current Pax */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h2 className="text-white font-bold text-base mb-4 flex items-center gap-2">
-            <span className="text-green-400">👥</span> Current Pax
-          </h2>
-          <OccupancyForm today={today} existing={todayRecord ?? null} />
-        </div>
+      {/* ── TILE 2 — Service Timer ──────────────────────────────────── */}
+      <Tile id="tour-service-timer" className="lg:col-span-5">
+        <TileHead label="Service Window" />
+        <ServiceTimer editable={true} />
+      </Tile>
 
-        {/* Service End Time */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h2 className="text-white font-bold text-base mb-4 flex items-center gap-2">
-            <span className="text-blue-400">🕐</span> Service Window
-          </h2>
-          <p className="text-gray-500 text-xs mb-4">
-            Countdown shown on the chef screen. Update before each service.
-          </p>
-          <ServiceTimer editable={true} />
-        </div>
-      </div>
+      {/* ── TILE 3 — Notify Chef ────────────────────────────────────── */}
+      <Tile id="tour-notify-chef" className="lg:col-span-5">
+        <TileHead label="Notify Kitchen" />
+        <TableArrivalPanel />
+      </Tile>
 
-      {/* ── Row 2: Notify Chef + Import ────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ── TILE 4 — Bulk Import ────────────────────────────────────── */}
+      <Tile className="lg:col-span-12">
+        <TileHead label="Bulk Import" helper="Upload historical CSV data. Duplicate dates are skipped." />
+        <CsvImporter defaultType="daily_occupancy" />
+      </Tile>
+    </div>
+  );
+}
 
-        {/* Table arrival alert */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h2 className="text-white font-bold text-base mb-1 flex items-center gap-2">
-            <span className="text-blue-400">🪑</span> Notify Chef
-          </h2>
-          <p className="text-gray-500 text-xs mb-4">
-            Push an alert to the chef screen. Auto-dismisses in 30 seconds.
-          </p>
-          <TableArrivalPanel />
-        </div>
+/* ─── Bento tile shell ─────────────────────────────────────────────────── */
+function Tile({
+  id,
+  children,
+  className = "",
+}: {
+  id?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      id={id}
+      className={[
+        "bg-ink-1 border border-ink-3 rounded-2xl p-5",
+        "flex flex-col gap-4",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
+}
 
-        {/* CSV import */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h2 className="text-white font-bold text-base mb-1 flex items-center gap-2">
-            <span className="text-gray-400">📁</span> Import Guest Data
-          </h2>
-          <p className="text-gray-500 text-xs mb-4">
-            Import historical pax counts from a CSV. Duplicate dates are skipped.
-          </p>
-          <CsvImporter defaultType="daily_occupancy" />
-        </div>
-      </div>
-
+/* ─── Tile header: small eyebrow label only ─── */
+function TileHead({ label, helper }: { label: string; helper?: string }) {
+  return (
+    <div>
+      <p className="text-ink-6 text-[11px] font-semibold uppercase tracking-[0.14em]">
+        {label}
+      </p>
+      {helper && <p className="text-ink-6 text-[12px] mt-1.5">{helper}</p>}
     </div>
   );
 }

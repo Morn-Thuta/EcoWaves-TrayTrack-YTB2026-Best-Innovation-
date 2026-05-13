@@ -143,43 +143,52 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-3">
+      {/* Single compact header row: title + helper left, action right */}
+      <div className="flex items-end justify-between gap-6 pb-2 border-b border-ink-3">
+        <div>
+          <h2 className="text-ink-8 text-[15px] font-semibold tracking-tight">
+            Station Mapping
+          </h2>
+          <p className="text-ink-6 text-[13px] mt-0.5">
+            Assign a dish and a sensor to each physical tray station.
+          </p>
+        </div>
         <Button
           onClick={() => { setAdding(true); setAddError(null); }}
-          className="bg-green-700 hover:bg-green-600 text-white text-sm"
+          className="bg-accent hover:bg-accent-dim text-ink-0 text-[13px] font-semibold h-8 px-3 rounded-md transition-colors duration-150 active:scale-95 shrink-0"
         >
-          + Add Tray
+          <span className="mr-1">+</span> Add Tray
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-800">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-900 text-gray-400 uppercase text-xs tracking-wide">
+      <div className="overflow-x-auto rounded-xl border border-ink-3">
+        <table className="w-full text-[15px]">
+          <thead className="bg-ink-1 text-ink-6 uppercase text-[12px] font-semibold tracking-wide">
             <tr>
-              <th className="px-4 py-3 text-left">Tray</th>
-              <th className="px-4 py-3 text-left">Location</th>
-              <th className="px-4 py-3 text-left">Dish Assigned</th>
-              <th className="px-4 py-3 text-left">Sensor</th>
-              <th className="px-4 py-3 text-right">Full Weight (kg)</th>
-              <th className="px-4 py-3 text-center">Status</th>
-              <th className="px-4 py-3 text-center">Calibrate</th>
+              <th className="px-5 py-3 text-left">Tray</th>
+              <th className="px-5 py-3 text-left">Location</th>
+              <th className="px-5 py-3 text-left">Dish Assigned</th>
+              <th className="px-5 py-3 text-left">Sensor</th>
+              <th className="px-5 py-3 text-right">Full Weight (kg)</th>
+              <th className="px-5 py-3 text-center">Status</th>
+              <th className="px-5 py-3 text-center">Calibrate</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-ink-3">
             {trays.map((tray) => (
               <React.Fragment key={tray.tray_id}>
-                <tr className="bg-gray-950 hover:bg-gray-900">
-                  <td className="px-4 py-3 text-white font-medium">{tray.tray_name}</td>
-                  <td className="px-4 py-3 text-gray-400">{tray.location ?? "—"}</td>
+                <tr className="bg-ink-2 hover:bg-ink-3 transition-colors duration-150">
+                  <td className="px-5 py-3.5 text-ink-8 font-medium">{tray.tray_name}</td>
+                  <td className="px-5 py-3.5 text-ink-6">{tray.location ?? "—"}</td>
 
                   {/* Dish selector */}
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3">
                     <select
                       value={tray.dish_id ?? ""}
                       onChange={(e) => updateTrayMapping(tray.tray_id, "dish_id", e.target.value)}
                       disabled={saving === tray.tray_id}
-                      className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                      className="w-full rounded-md bg-ink-3 border border-ink-4 text-ink-8 px-2.5 py-1.5 text-[13px]"
                     >
                       <option value="">— No dish —</option>
                       {dishes.map((d) => (
@@ -189,12 +198,12 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                   </td>
 
                   {/* Sensor selector */}
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3">
                     <select
                       value={tray.sensor_id ?? ""}
                       onChange={(e) => updateTrayMapping(tray.tray_id, "sensor_id", e.target.value)}
                       disabled={saving === tray.tray_id}
-                      className="w-full rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                      className="w-full rounded-md bg-ink-3 border border-ink-4 text-ink-8 px-2.5 py-1.5 text-[13px] font-mono"
                     >
                       <option value="">— No sensor —</option>
                       {sensors.map((s) => (
@@ -205,16 +214,16 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                     </select>
                   </td>
 
-                  <td className="px-4 py-3 text-gray-300 text-right">
+                  <td className="px-5 py-3.5 text-ink-7 text-right font-mono tabular">
                     {(tray.full_tray_weight_grams / 1000).toFixed(1)}
                   </td>
 
                   {/* Status toggle */}
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-5 py-3 text-center">
                     <select
                       value={tray.status}
                       onChange={(e) => updateTrayStatus(tray.tray_id, e.target.value as Tray["status"])}
-                      className="rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-xs"
+                      className="rounded-md bg-ink-3 border border-ink-4 text-ink-7 px-2.5 py-1.5 text-[12px]"
                     >
                       <option value="active">Active</option>
                       <option value="offline">Offline</option>
@@ -222,12 +231,12 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                     </select>
                   </td>
 
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-5 py-3.5 text-center">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => startCalibration(tray.tray_id)}
-                      className="text-blue-400 hover:text-blue-200 text-xs"
+                      className="text-blue-400 hover:text-blue-300 hover:bg-ink-3 text-[13px] font-medium h-8"
                     >
                       Calibrate
                     </Button>
@@ -368,7 +377,7 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
 
             {trays.length === 0 && !adding && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-600">
+                <td colSpan={7} className="px-4 py-10 text-center text-ink-6 text-sm">
                   No trays configured. Click &quot;+ Add Tray&quot; to get started.
                 </td>
               </tr>
