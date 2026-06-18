@@ -4,8 +4,17 @@ import { useState, useEffect } from "react";
 import { useRealtimeOccupancy } from "@/hooks/useRealtimeOccupancy";
 import { getMinutesRemaining, STORAGE_KEY, DEFAULT_END } from "./ServiceTimer";
 import { BrandMark } from "@/components/manage/BrandMark";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { canSwitchViews } from "@/lib/roles";
 
-export function ChefHeader() {
+interface ChefHeaderProps {
+  role: string | null;
+  /** Server-computed count of offline sensors (initial render only — updates on
+   *  reload, not live, to avoid duplicate-subscription with TrayGrid). */
+  initialOfflineCount: number;
+}
+
+export function ChefHeader({ role, initialOfflineCount }: ChefHeaderProps) {
   const { todayPax, loading } = useRealtimeOccupancy();
   const [clock, setClock] = useState("");
   const [serviceEnd, setServiceEnd] = useState(DEFAULT_END);
@@ -49,8 +58,16 @@ export function ChefHeader() {
           ? "text-amber-400"
           : "text-green-400";
 
+  // Sensor health label — server-computed at page load
+  const sensorsOk = initialOfflineCount === 0;
+  const sensorLabel = sensorsOk
+    ? "Sensors online"
+    : `${initialOfflineCount} sensor${initialOfflineCount > 1 ? "s" : ""} offline`;
+
+  const showToggle = canSwitchViews(role);
+
   return (
-    <header className="flex-shrink-0 bg-ink-1 border-b border-ink-3 px-5 h-11 flex items-center justify-between gap-6">
+    <header className="flex-shrink-0 bg-ink-1 border-b border-ink-3 px-5 h-11 flex items-center justify-between gap-4">
       {/* Left: brand mark + meal label */}
       <div className="flex items-center gap-3 flex-shrink-0">
         <BrandMark size={18} />
@@ -59,35 +76,68 @@ export function ChefHeader() {
         </span>
       </div>
 
-      {/* Service end */}
-      <span className={`text-xs font-semibold flex-shrink-0 ${serviceColor}`}>
-        {serviceMinLeft <= 0 ? "Service ended" : `ends ${serviceEnd}`}
-      </span>
-
-      {/* Center: clock */}
-      <span className="text-white text-lg font-black tabular-nums tracking-wide">
-        {clock}
-      </span>
-
-      {/* Pax */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-          Pax
+      {/* Center-right cluster: status segments with vertical dividers */}
+      <div className="flex items-center divide-x divide-ink-3 text-sm flex-shrink min-w-0">
+        {/* Service end — labelled */}
+        <span className={`px-3 text-xs font-semibold whitespace-nowrap ${serviceColor}`}>
+          {serviceMinLeft <= 0 ? "Service ended" : `Ends ${serviceEnd}`}
         </span>
-        {loading ? (
-          <span className="w-8 h-5 bg-gray-800 rounded animate-pulse" />
-        ) : (
-          <span className="text-white text-lg font-black tabular-nums">
-            {todayPax ?? "—"}
+
+        {/* Clock */}
+        <span className="px-3 text-ink-8 text-base font-bold tabular-nums tracking-wide whitespace-nowrap">
+          {clock}
+        </span>
+
+        {/* Pax — with explicit label */}
+        <span className="px-3 flex items-center gap-1.5 whitespace-nowrap">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-6">
+            Pax
           </span>
-        )}
+          {loading ? (
+            <span className="w-8 h-4 bg-ink-3 rounded animate-pulse" />
+          ) : (
+            <span className="text-ink-8 text-base font-bold tabular-nums">
+              {todayPax ?? "—"}
+            </span>
+          )}
+        </span>
+
+        {/* Sensor status — coloured dot + label */}
+        <span
+          className="px-3 flex items-center gap-1.5 whitespace-nowrap"
+          title={sensorLabel}
+        >
+          <span className="relative flex h-2 w-2">
+            <span
+              className={[
+                "animate-ping absolute inline-flex h-full w-full rounded-full opacity-40",
+                sensorsOk ? "bg-green-400" : "bg-red-400",
+              ].join(" ")}
+            />
+            <span
+              className={[
+                "relative inline-flex h-2 w-2 rounded-full",
+                sensorsOk ? "bg-green-400" : "bg-red-400",
+              ].join(" ")}
+            />
+          </span>
+          <span
+            className={[
+              "text-[11px] font-medium tracking-wide",
+              sensorsOk ? "text-ink-6" : "text-red-300",
+            ].join(" ")}
+          >
+            {sensorLabel}
+          </span>
+        </span>
       </div>
 
-      {/* Sync dot */}
-      <span className="relative flex h-2 w-2 flex-shrink-0" title="Live data">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
-      </span>
+      {/* Right: ViewToggle for admin / F&B users (Option B + C) */}
+      {showToggle && (
+        <div className="flex-shrink-0">
+          <ViewToggle />
+        </div>
+      )}
     </header>
   );
 }

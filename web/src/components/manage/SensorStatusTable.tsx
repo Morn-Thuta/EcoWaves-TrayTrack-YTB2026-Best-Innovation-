@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow, differenceInMinutes } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/ui/AppButton";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SensorWithRelations = any;
@@ -71,12 +71,12 @@ export function SensorStatusTable({ sensors: initialSensors }: SensorStatusTable
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button
+        <AppButton
+          variant="primary"
           onClick={() => { setAdding(true); setSensorId(generateUUID()); setError(null); }}
-          className="bg-blue-700 hover:bg-blue-600 text-white text-sm"
         >
           + Register Sensor
-        </Button>
+        </AppButton>
       </div>
 
       {adding && (
@@ -92,9 +92,9 @@ export function SensorStatusTable({ sensors: initialSensors }: SensorStatusTable
                   className="flex-1 rounded-md bg-gray-800 border border-gray-700 text-white font-mono px-3 py-1.5 text-sm"
                   placeholder="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
                 />
-                <Button size="sm" variant="ghost" onClick={() => setSensorId(generateUUID())} className="text-gray-400 text-xs">
+                <AppButton size="sm" variant="ghost" onClick={() => setSensorId(generateUUID())}>
                   Regenerate
-                </Button>
+                </AppButton>
               </div>
             </div>
             <div>
@@ -118,37 +118,56 @@ export function SensorStatusTable({ sensors: initialSensors }: SensorStatusTable
           </div>
           {error && <p className="text-red-400 text-xs">{error}</p>}
           <div className="flex gap-2">
-            <Button onClick={registerSensor} disabled={saving} className="bg-blue-700 hover:bg-blue-600 text-white text-sm">
+            <AppButton variant="primary" onClick={registerSensor} disabled={saving}>
               {saving ? "Saving…" : "Register"}
-            </Button>
-            <Button variant="ghost" onClick={() => setAdding(false)} className="text-gray-400 text-sm">Cancel</Button>
+            </AppButton>
+            <AppButton variant="ghost" onClick={() => setAdding(false)}>
+              Cancel
+            </AppButton>
           </div>
           <p className="text-gray-500 text-xs">After registering, flash this UUID into your ESP32 firmware and point it to the <code className="text-gray-300">ingest-reading</code> Edge Function URL.</p>
         </div>
       )}
 
-    {/* Health alerts banner */}
-    {sensors.some((s: SensorWithRelations) => {
-      if (!s.last_seen_at) return true;
-      return differenceInMinutes(now, new Date(s.last_seen_at)) >= 5;
-    }) && (
-      <div className="flex items-start gap-3 bg-amber-950 border border-amber-700 rounded-xl px-4 py-3">
-        <span className="text-amber-400 text-lg mt-0.5">⚠</span>
-        <div>
-          <p className="text-amber-300 font-semibold text-sm">Sensor health warning</p>
-          <p className="text-amber-400/80 text-xs mt-0.5">
-            {sensors.filter((s: SensorWithRelations) => {
-              if (!s.last_seen_at) return true;
-              return differenceInMinutes(now, new Date(s.last_seen_at)) >= 5;
-            }).map((s: SensorWithRelations) => s.trays?.tray_name ?? s.sensor_id.slice(0, 8)).join(", ")}{" "}
-            {sensors.filter((s: SensorWithRelations) => {
-              if (!s.last_seen_at) return true;
-              return differenceInMinutes(now, new Date(s.last_seen_at)) >= 5;
-            }).length === 1 ? "has" : "have"} not reported in the last 5 minutes. Check power and Wi-Fi.
-          </p>
+    {/* Health alerts banner — WCAG-AA contrast + Diagnose CTA */}
+    {(() => {
+      const unhealthy = sensors.filter((s: SensorWithRelations) => {
+        if (!s.last_seen_at) return true;
+        return differenceInMinutes(now, new Date(s.last_seen_at)) >= 5;
+      });
+      if (unhealthy.length === 0) return null;
+      const names = unhealthy
+        .map((s: SensorWithRelations) => s.trays?.tray_name ?? s.sensor_id.slice(0, 8))
+        .join(", ");
+      const verb = unhealthy.length === 1 ? "has" : "have";
+
+      const diagnose = () => {
+        const first = unhealthy[0];
+        const row = document.getElementById(`sensor-row-${first.sensor_id}`);
+        if (!row) return;
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("ring-2", "ring-amber-400");
+        setTimeout(() => row.classList.remove("ring-2", "ring-amber-400"), 1500);
+      };
+
+      return (
+        <div className="flex items-start gap-3 bg-amber-950 border border-amber-700 rounded-xl px-4 py-3">
+          <span className="text-amber-400 text-lg mt-0.5" aria-hidden="true">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-300 font-semibold text-sm">
+              Sensor health warning
+            </p>
+            <p className="text-amber-100 text-[13px] mt-0.5">
+              <span className="font-medium">{names}</span> {verb} not reported in
+              the last 5 minutes. Check power and Wi-Fi.
+            </p>
+          </div>
+          <AppButton variant="secondary" size="sm" onClick={diagnose} className="flex-shrink-0">
+            Diagnose →
+          </AppButton>
         </div>
-      </div>
-    )}
+      );
+    })()}
 
     <div className="overflow-x-auto rounded-xl border border-gray-800">
       <table className="w-full text-sm">
@@ -165,7 +184,11 @@ export function SensorStatusTable({ sensors: initialSensors }: SensorStatusTable
         </thead>
         <tbody className="divide-y divide-gray-800">
           {sensors.map((s: SensorWithRelations) => (
-            <tr key={s.sensor_id} className="bg-gray-950 hover:bg-gray-900">
+            <tr
+              key={s.sensor_id}
+              id={`sensor-row-${s.sensor_id}`}
+              className="bg-gray-950 hover:bg-gray-900 transition-shadow duration-300"
+            >
               <td className="px-4 py-3 text-white font-mono text-xs">
                 {s.sensor_id.slice(0, 8)}…
               </td>

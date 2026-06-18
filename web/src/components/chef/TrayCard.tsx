@@ -1,6 +1,7 @@
 "use client";
 
 import type { TrayCardData, ColorCode } from "@/types/domain";
+import { getRefillStatus, REFILL_LABEL, refillToColorCode } from "@/lib/refill";
 
 /* ── Colour map ─────────────────────────────────────────────────────── */
 const COLOR_MAP: Record<
@@ -41,29 +42,29 @@ const COLOR_MAP: Record<
   },
 };
 
-const LEVEL_LABEL: Record<ColorCode, string> = {
-  green: "HIGH",
-  amber: "MEDIUM",
-  red:   "LOW",
-  grey:  "OFFLINE",
-};
-
 interface TrayCardProps {
   tray: TrayCardData;
 }
 
 export function TrayCard({ tray }: TrayCardProps) {
-  const colorCode = (tray.color_code ?? "grey") as ColorCode;
-  const colors    = COLOR_MAP[colorCode];
   const pct       = Math.min(100, Math.max(0, tray.remaining_percent ?? 0));
   const foodKg    = ((tray.food_weight_grams ?? 0) / 1000).toFixed(1);
+
+  // Derive both the status (for label) and the colour from the fill %.
+  // If the underlying state is "offline" (grey), keep that — refill makes no
+  // sense for an offline sensor.
+  const isOffline   = tray.color_code === "grey";
+  const refill      = isOffline ? null : getRefillStatus(pct);
+  const colorCode   = (isOffline ? "grey" : refillToColorCode(refill!)) as ColorCode;
+  const colors      = COLOR_MAP[colorCode];
+  const statusLabel = isOffline ? "OFFLINE" : REFILL_LABEL[refill!];
 
   return (
     <div
       className={[
         "relative rounded-2xl border-2 h-full flex gap-3 p-4",
         colors.card,
-        // Smooth color transition when urgency level changes
+        // Smooth colour transition when urgency level changes
         "transition-colors duration-700",
       ].join(" ")}
     >
@@ -90,19 +91,20 @@ export function TrayCard({ tray }: TrayCardProps) {
 
       {/* ── Main content ───────────────────────────────────────────── */}
       <div className="flex flex-col justify-between flex-1 min-w-0 overflow-hidden">
-        {/* Level badge */}
+        {/* Refill status badge */}
         <div>
           <span
-            className={`inline-block text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${colors.badge}`}
+            className={`inline-block text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${colors.badge}`}
           >
-            {LEVEL_LABEL[colorCode]}
+            {statusLabel}
           </span>
         </div>
 
-        {/* Dish name — scales with available space */}
-        <div className="flex-1 flex items-center my-2">
+        {/* Dish name — wraps at word boundaries to 2 lines */}
+        <div className="flex-1 flex items-center my-2 min-w-0">
           <h2
-            className={`font-black ${colors.text} leading-tight line-clamp-2 text-2xl xl:text-3xl`}
+            className={`font-black ${colors.text} leading-tight line-clamp-2 text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-3xl pr-1 w-full`}
+            style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
           >
             {tray.dish_name ?? "—"}
           </h2>
@@ -111,12 +113,12 @@ export function TrayCard({ tray }: TrayCardProps) {
         {/* Percentage + weight */}
         <div className="flex items-end gap-2">
           <span
-            className={`font-black ${colors.text} leading-none text-6xl xl:text-7xl 2xl:text-8xl`}
+            className={`font-black ${colors.text} leading-none text-5xl md:text-6xl xl:text-7xl 2xl:text-8xl`}
           >
             {Math.round(pct)}
-            <span className="text-2xl xl:text-3xl font-bold opacity-60">%</span>
+            <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60">%</span>
           </span>
-          <span className={`font-bold ${colors.muted} pb-1 text-base xl:text-lg`}>
+          <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
             {foodKg} kg
           </span>
         </div>

@@ -134,7 +134,7 @@ export function ServiceTimer({ editable = false }: ServiceTimerProps) {
               onClick={() => { setEditing(true); setDraft(endTime); }}
               className="inline-flex items-center h-8 px-3 rounded-md border border-ink-3 hover:border-ink-4 text-ink-7 hover:text-ink-8 text-[13px] font-medium transition-colors duration-150 active:scale-95"
             >
-              Set end time
+              {ended ? "Start next service" : "Change end time"}
             </button>
           )}
         </div>

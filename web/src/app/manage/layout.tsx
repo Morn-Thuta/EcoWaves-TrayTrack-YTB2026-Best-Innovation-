@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TabNav } from "@/components/manage/TabNav";
 import { TutorialButton } from "@/components/manage/TutorialButton";
 import { BrandMark } from "@/components/manage/BrandMark";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { roleLabel, canSwitchViews } from "@/lib/roles";
 
 export default async function ManageLayout({
   children,
@@ -28,6 +29,7 @@ export default async function ManageLayout({
   const displayName = profile?.display_name ?? user.email ?? "—";
   const initials =
     (displayName.match(/\b\w/g) ?? []).slice(0, 2).join("").toUpperCase() || "?";
+  const showToggle = canSwitchViews(profile?.role);
 
   return (
     <div className="min-h-screen bg-ink-0 text-ink-8 flex flex-col">
@@ -49,27 +51,9 @@ export default async function ManageLayout({
           </span>
         </div>
 
-        {/* Right cluster: ⌘K hint, Chef View, Tour, User avatar */}
+        {/* Right cluster: ViewToggle, Tour, User avatar */}
         <div className="flex items-center gap-3">
-          {/* ⌘K hint — visual signal that this app has a command palette */}
-          <kbd
-            className="hidden sm:inline-flex items-center gap-1 px-2 h-7 rounded-md bg-ink-2 border border-ink-4 text-ink-6 text-[11px] font-mono tracking-wide select-none"
-            title="Command palette (coming soon)"
-          >
-            <span className="text-sm leading-none">⌘</span>
-            <span>K</span>
-          </kbd>
-
-          {/* Chef View — secondary link, unified button language */}
-          <Link
-            id="tour-chef-view-link"
-            href="/chef"
-            className="inline-flex items-center h-8 px-3 rounded-md border border-ink-4 hover:border-ink-5 text-ink-7 hover:text-ink-8 text-sm font-medium transition-colors duration-150 active:scale-95"
-          >
-            Chef View
-            <span className="ml-1.5 text-ink-6">→</span>
-          </Link>
-
+          {showToggle && <ViewToggle />}
           <TutorialButton />
 
           {/* User avatar chip */}
@@ -82,7 +66,7 @@ export default async function ManageLayout({
             </div>
             <div className="hidden md:flex flex-col leading-tight">
               <span className="text-ink-8 text-[13px] font-medium">{displayName}</span>
-              <span className="text-ink-6 text-[11px] capitalize">{profile?.role ?? ""}</span>
+              <span className="text-ink-6 text-[11px]">{roleLabel(profile?.role)}</span>
             </div>
           </div>
         </div>
