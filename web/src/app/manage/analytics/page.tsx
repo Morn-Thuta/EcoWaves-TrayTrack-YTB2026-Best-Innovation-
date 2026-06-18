@@ -30,13 +30,7 @@ export default async function AnalyticsPage() {
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-white text-xl font-bold mb-2">Analytics (Last 30 Days)</h2>
-        <p className="text-gray-400 text-sm">
-          Consumption trends, refill frequency, and guest count patterns.
-        </p>
-      </div>
+    <div className="space-y-6">
       <AnalyticsDashboard
         refillEvents={refills ?? []}
         occupancy={occupancy ?? []}

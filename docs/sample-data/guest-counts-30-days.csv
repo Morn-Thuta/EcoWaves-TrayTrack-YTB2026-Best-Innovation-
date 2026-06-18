@@ -1,0 +1,31 @@
+date,expected_pax,notes
+2026-04-15,118,Wed — standard occupancy
+2026-04-16,124,Thu
+2026-04-17,142,Fri — leisure arrivals
+2026-04-18,198,Sat — weekend peak
+2026-04-19,176,Sun
+2026-04-20,108,Mon
+2026-04-21,113,Tue
+2026-04-22,121,Wed
+2026-04-23,116,Thu
+2026-04-24,138,Fri
+2026-04-25,204,Sat — corporate group booking
+2026-04-26,182,Sun
+2026-04-27,102,Mon
+2026-04-28,109,Tue
+2026-04-29,115,Wed
+2026-04-30,122,Thu
+2026-05-01,228,Fri — Labour Day public holiday
+2026-05-02,212,Sat
+2026-05-03,189,Sun
+2026-05-04,104,Mon
+2026-05-05,111,Tue
+2026-05-06,119,Wed
+2026-05-07,127,Thu
+2026-05-08,144,Fri
+2026-05-09,206,Sat — wedding party check-in
+2026-05-10,184,Sun
+2026-05-11,99,Mon — low occupancy
+2026-05-12,107,Tue
+2026-05-13,123,Wed
+2026-05-14,131,Thu — today

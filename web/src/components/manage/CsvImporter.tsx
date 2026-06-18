@@ -54,6 +54,7 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
       header: true,
       preview: 10,
       skipEmptyLines: true,
+      dynamicTyping: true, // parse "118" as 118 — keeps numeric columns numeric
       complete: (results) => {
         setPreview(results.data);
         const cols = results.meta.fields ?? [];
@@ -79,6 +80,7 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
     Papa.parse<ParsedRow>(file, {
       header: true,
       skipEmptyLines: true,
+      dynamicTyping: true, // parse numeric columns as numbers
       complete: async (results) => {
         const rows = results.data;
         const total = rows.length;

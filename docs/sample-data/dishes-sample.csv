@@ -1,0 +1,11 @@
+name,full_tray_weight_grams,batch_size,category,dish_type,cook_trigger_percent,is_active
+Bee Hoon Goreng,5000,40,Main,cooked,25,true
+Chicken Congee,4500,50,Main,cooked,30,true
+Dim Sum Platter,3500,30,Main,ready-to-serve,20,true
+French Toast,3000,35,Bread,cooked,25,true
+Hash Browns,2500,40,Sides,cooked,30,true
+Laksa,6000,30,Main,cooked,20,true
+Mango Cubes,2800,25,Fruits,ready-to-serve,30,true
+Pancakes,2800,40,Bread,cooked,30,true
+Sausages,3200,45,Main,cooked,25,true
+Yogurt Parfait,2000,30,Dessert,ready-to-serve,30,true
