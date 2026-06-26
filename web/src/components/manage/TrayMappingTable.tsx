@@ -19,6 +19,8 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
   const [calibrating, setCalibrating] = useState<string | null>(null);
   const [calibStep, setCalibStep] = useState<"empty" | "weight">("empty");
   const [knownWeight, setKnownWeight] = useState("");
+  const [liveWeight, setLiveWeight] = useState<number | null>(null);
+  const [manualTare, setManualTare] = useState("");
   const [adding, setAdding] = useState(false);
   const [newTray, setNewTray] = useState(BLANK_TRAY);
   const [addError, setAddError] = useState<string | null>(null);
@@ -103,21 +105,38 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
     }
   }
 
-  // Calibration: Step 1 — record empty tray tare weight
+  // Calibration: Step 1 — capture the empty container's weight as the tare
   async function startCalibration(trayId: string) {
     setCalibrating(trayId);
     setCalibStep("empty");
+    setManualTare("");
+    setLiveWeight(null);
+    fetchLiveWeight(trayId);
   }
 
-  // Calibration: Step 2 — set tare weight to 0 (empty tray = 0 food weight)
-  async function recordTare(trayId: string) {
-    // Tare weight = 0 means "empty tray reads 0g food weight"
-    // The actual HX711 calibration happens on the device; here we store tare_weight_grams = 0
-    await supabase
+  // Pull the tray's current sensor reading (the empty container sitting on it)
+  async function fetchLiveWeight(trayId: string) {
+    const { data } = await supabase
       .from("trays")
-      .update({ tare_weight_grams: 0 })
-      .eq("tray_id", trayId);
+      .select("last_weight_grams")
+      .eq("tray_id", trayId)
+      .single();
+    if (data) setLiveWeight(Number(data.last_weight_grams));
+  }
 
+  // Store the container weight as tare so only food is measured afterwards.
+  // food_weight = sensor_reading − tare_weight_grams
+  async function captureContainerTare(trayId: string, grams: number) {
+    const tare = Math.max(0, Math.round(grams));
+    const { data } = await supabase
+      .from("trays")
+      .update({ tare_weight_grams: tare })
+      .eq("tray_id", trayId)
+      .select()
+      .single();
+    if (data) {
+      setTrays((prev) => prev.map((t) => (t.tray_id === data.tray_id ? data : t)));
+    }
     setCalibStep("weight");
   }
 
@@ -248,25 +267,77 @@ export function TrayMappingTable({ initialTrays, dishes, sensors }: TrayMappingT
                   <tr key={`${tray.tray_id}-calib`} className="bg-blue-950 border-blue-800">
                     <td colSpan={7} className="px-6 py-4">
                       {calibStep === "empty" ? (
-                        <div className="flex items-center gap-4">
-                          <span className="text-blue-200 font-medium">
-                            Step 1: Place the <strong>empty tray</strong> on the load cells.
-                          </span>
-                          <Button
-                            size="sm"
-                            onClick={() => recordTare(tray.tray_id)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white"
-                          >
-                            Tare (set zero)
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setCalibrating(null)}
-                            className="text-gray-400"
-                          >
-                            Cancel
-                          </Button>
+                        <div className="flex flex-col gap-3">
+                          <p className="text-blue-200 font-medium leading-snug">
+                            Step 1 — Container tare. Boot the sensor on the{" "}
+                            <strong>bare empty platform</strong>, then place the{" "}
+                            <strong>empty container</strong> on the tray and capture its weight.
+                            Only food will be measured after this.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <div className="rounded-lg bg-ink-2 border border-ink-4 px-4 py-2">
+                              <span className="text-ink-6 text-[11px] uppercase tracking-wide block">
+                                Live reading
+                              </span>
+                              <span className="text-ink-8 text-xl font-mono tabular">
+                                {liveWeight != null ? `${(liveWeight / 1000).toFixed(2)} kg` : "—"}
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => fetchLiveWeight(tray.tray_id)}
+                              className="text-blue-300 hover:text-blue-200"
+                            >
+                              ↻ Refresh
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => captureContainerTare(tray.tray_id, liveWeight ?? 0)}
+                              disabled={liveWeight == null}
+                              className="bg-blue-600 hover:bg-blue-500 text-white"
+                            >
+                              Capture as container weight
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-ink-6 text-[13px]">or enter manually:</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step={10}
+                              value={manualTare}
+                              onChange={(e) => setManualTare(e.target.value)}
+                              placeholder="grams"
+                              className="w-28 rounded-md bg-gray-800 border border-gray-700 text-white px-2 py-1 text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => captureContainerTare(tray.tray_id, parseFloat(manualTare) || 0)}
+                              disabled={!manualTare}
+                              className="text-blue-300 hover:text-blue-200"
+                            >
+                              Set
+                            </Button>
+                            <span className="text-ink-5 text-[12px] mx-1">·</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => captureContainerTare(tray.tray_id, 0)}
+                              className="text-ink-6 hover:text-ink-8"
+                            >
+                              No container (tare 0)
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setCalibrating(null)}
+                              className="text-gray-400"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-4">
