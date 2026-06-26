@@ -2,6 +2,7 @@
 
 import type { TrayCardData, ColorCode } from "@/types/domain";
 import { getRefillStatus, REFILL_LABEL, refillToColorCode } from "@/lib/refill";
+import { useDisplayMode } from "./DisplayModeContext";
 
 /* ── Colour map ─────────────────────────────────────────────────────── */
 const COLOR_MAP: Record<
@@ -47,8 +48,11 @@ interface TrayCardProps {
 }
 
 export function TrayCard({ tray }: TrayCardProps) {
+  const { mode }  = useDisplayMode();
   const pct       = Math.min(100, Math.max(0, tray.remaining_percent ?? 0));
   const foodKg    = ((tray.food_weight_grams ?? 0) / 1000).toFixed(1);
+  const fullKg    = ((tray.full_tray_weight_grams ?? 0) / 1000).toFixed(1);
+  const showWeight = mode === "weight";
 
   // Derive both the status (for label) and the colour from the fill %.
   // If the underlying state is "offline" (grey), keep that — refill makes no
@@ -110,18 +114,39 @@ export function TrayCard({ tray }: TrayCardProps) {
           </h2>
         </div>
 
-        {/* Percentage + weight */}
-        <div className="flex items-end gap-2">
-          <span
-            className={`font-black ${colors.text} leading-none text-5xl md:text-6xl xl:text-7xl 2xl:text-8xl`}
-          >
-            {Math.round(pct)}
-            <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60">%</span>
-          </span>
-          <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
-            {foodKg} kg
-          </span>
-        </div>
+        {/* Hero metric — switches between % and kg via the header toggle */}
+        {showWeight ? (
+          /* Weight mode: big current kg · muted % · capacity caption */
+          <div>
+            <div className="flex items-end gap-2">
+              <span
+                className={`font-black ${colors.text} leading-none text-5xl md:text-6xl xl:text-7xl 2xl:text-8xl`}
+              >
+                {foodKg}
+                <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60"> kg</span>
+              </span>
+              <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
+                {Math.round(pct)}%
+              </span>
+            </div>
+            <span className={`block ${colors.muted} text-xs md:text-sm font-semibold mt-0.5`}>
+              of {fullKg} kg
+            </span>
+          </div>
+        ) : (
+          /* Percent mode: big % · muted current kg */
+          <div className="flex items-end gap-2">
+            <span
+              className={`font-black ${colors.text} leading-none text-5xl md:text-6xl xl:text-7xl 2xl:text-8xl`}
+            >
+              {Math.round(pct)}
+              <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60">%</span>
+            </span>
+            <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
+              {foodKg} kg
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Stale overlay ──────────────────────────────────────────── */}

@@ -5,6 +5,7 @@ import { useRealtimeOccupancy } from "@/hooks/useRealtimeOccupancy";
 import { getMinutesRemaining, STORAGE_KEY, DEFAULT_END } from "./ServiceTimer";
 import { BrandMark } from "@/components/manage/BrandMark";
 import { ViewToggle } from "@/components/ui/ViewToggle";
+import { DisplayModeToggle } from "./DisplayModeContext";
 import { canSwitchViews } from "@/lib/roles";
 
 interface ChefHeaderProps {
@@ -132,12 +133,11 @@ export function ChefHeader({ role, initialOfflineCount }: ChefHeaderProps) {
         </span>
       </div>
 
-      {/* Right: ViewToggle for admin / F&B users (Option B + C) */}
-      {showToggle && (
-        <div className="flex-shrink-0">
-          <ViewToggle />
-        </div>
-      )}
+      {/* Right: % / kg display toggle (always) + ViewToggle for mgmt roles */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <DisplayModeToggle />
+        {showToggle && <ViewToggle />}
+      </div>
     </header>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { TrayGrid } from "@/components/chef/TrayGrid";
 import { ChefHeader } from "@/components/chef/ChefHeader";
+import { DisplayModeProvider } from "@/components/chef/DisplayModeContext";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +55,14 @@ export default async function ChefDashboardPage() {
 
   return (
     <div className="h-dvh overflow-hidden bg-ink-0 flex flex-col">
-      <ChefHeader role={role} initialOfflineCount={initialOfflineCount} />
+      <DisplayModeProvider>
+        <ChefHeader role={role} initialOfflineCount={initialOfflineCount} />
 
-      {/* Main content — flex-1 + min-h-0 prevents overflow */}
-      <main className="flex-1 min-h-0 p-4">
-        <TrayGrid historicalAvgPax={historicalAvgPax} />
-      </main>
+        {/* Main content — flex-1 + min-h-0 prevents overflow */}
+        <main className="flex-1 min-h-0 p-4">
+          <TrayGrid historicalAvgPax={historicalAvgPax} />
+        </main>
+      </DisplayModeProvider>
     </div>
   );
 }
