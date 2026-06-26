@@ -104,7 +104,7 @@ export function AnalyticsDashboard({
 
       {/* ── Guest count chart ─────────────────────────────────────────────── */}
       <ChartPanel
-        title="Guest Count — Last 30 Days"
+        title="Guest Count — Recent History"
         subtitle="Dashed = expected (planned), solid = actual (recorded after service)"
         hasData={occupancyChartData.length >= 2}
         emptyState={
