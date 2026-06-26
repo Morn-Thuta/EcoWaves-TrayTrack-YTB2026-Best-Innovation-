@@ -8,18 +8,44 @@ import { Progress } from "@/components/ui/progress";
 
 type ImportType = "sensor_readings" | "daily_occupancy" | "dishes";
 
-const IMPORT_CONFIGS: Record<ImportType, { label: string; requiredColumns: string[] }> = {
+const IMPORT_CONFIGS: Record<
+  ImportType,
+  {
+    label: string;
+    requiredColumns: string[];
+    optionalColumns: string[];
+    conflict: string;
+    /** merge = update existing rows on conflict; ignore = skip duplicates */
+    mode: "merge" | "ignore";
+  }
+> = {
   sensor_readings: {
     label: "Sensor Readings",
     requiredColumns: ["sensor_id", "tray_id", "weight_grams", "recorded_at"],
+    optionalColumns: ["is_averaged", "batch_source_count"],
+    conflict: "sensor_id,recorded_at",
+    mode: "ignore",
   },
   daily_occupancy: {
     label: "Guest Counts",
     requiredColumns: ["date", "expected_pax"],
+    optionalColumns: ["actual_pax", "source", "notes"],
+    conflict: "date",
+    mode: "merge", // re-importing a date updates it (e.g. adding actual_pax)
   },
   dishes: {
     label: "Dish Configuration",
     requiredColumns: ["name", "full_tray_weight_grams", "batch_size"],
+    optionalColumns: [
+      "category",
+      "dish_type",
+      "tare_weight_grams",
+      "cook_trigger_percent",
+      "average_cook_time_minutes",
+      "popularity_score",
+    ],
+    conflict: "name",
+    mode: "ignore",
   },
 };
 
@@ -59,12 +85,12 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
         setPreview(results.data);
         const cols = results.meta.fields ?? [];
         setColumns(cols);
-        // Auto-map columns with matching names
+        // Auto-map columns with matching names (required AND optional)
         const autoMap: Record<string, string> = {};
-        const required = IMPORT_CONFIGS[importType].requiredColumns;
-        required.forEach((req) => {
-          const match = cols.find((c) => c.toLowerCase() === req.toLowerCase());
-          if (match) autoMap[req] = match;
+        const cfg = IMPORT_CONFIGS[importType];
+        [...cfg.requiredColumns, ...cfg.optionalColumns].forEach((col) => {
+          const match = cols.find((c) => c.toLowerCase() === col.toLowerCase());
+          if (match) autoMap[col] = match;
         });
         setColumnMap(autoMap);
       },
@@ -82,6 +108,7 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
       skipEmptyLines: true,
       dynamicTyping: true, // parse numeric columns as numbers
       complete: async (results) => {
+        const cfg = IMPORT_CONFIGS[importType];
         const rows = results.data;
         const total = rows.length;
         let imported = 0;
@@ -89,34 +116,41 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
         const batchSize = 500;
 
         for (let i = 0; i < rows.length; i += batchSize) {
-          const batch = rows.slice(i, i + batchSize).map((row) => {
-            const mapped: ParsedRow = {};
-            Object.entries(columnMap).forEach(([target, source]) => {
-              mapped[target] = row[source];
-            });
-            return mapped;
-          });
+          const slice = rows.slice(i, i + batchSize);
 
-          const { error: insertError } = await supabase
+          // Map every column the user mapped (required + optional), dropping
+          // blank cells so we never write empty strings into typed columns.
+          const batch = slice
+            .map((row) => {
+              const mapped: ParsedRow = {};
+              Object.entries(columnMap).forEach(([target, source]) => {
+                const v = source ? row[source] : undefined;
+                if (v !== undefined && v !== null && v !== "") mapped[target] = v;
+              });
+              return mapped;
+            })
+            .filter((m) => cfg.requiredColumns.every((rc) => m[rc] !== undefined));
+
+          // .select() returns the rows that were actually written, so we can
+          // report a truthful count (ignored duplicates are NOT returned).
+          const { data, error: insertError } = await supabase
             .from(importType)
             .upsert(batch, {
-              onConflict:
-                importType === "daily_occupancy"
-                  ? "date"
-                  : importType === "sensor_readings"
-                  ? "sensor_id,recorded_at"
-                  : "name",
-              ignoreDuplicates: true,
-            });
+              onConflict: cfg.conflict,
+              ignoreDuplicates: cfg.mode === "ignore",
+            })
+            .select();
 
           if (insertError) {
-            skipped += batch.length;
+            skipped += slice.length;
             setError(`Import error: ${insertError.message}`);
           } else {
-            imported += batch.length;
+            const written = data?.length ?? 0;
+            imported += written;
+            skipped += slice.length - written;
           }
 
-          setProgress(Math.round(((i + batch.length) / total) * 100));
+          setProgress(Math.round(((i + slice.length) / total) * 100));
         }
 
         setResult({ imported, skipped });
@@ -151,10 +185,18 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
         </div>
       </div>
 
-      {/* Required columns info */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm">
-        <p className="text-gray-400 mb-1">Required CSV columns:</p>
-        <p className="text-gray-300 font-mono">{config.requiredColumns.join(", ")}</p>
+      {/* Columns info */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm space-y-1">
+        <p className="text-gray-400">
+          Required columns:{" "}
+          <span className="text-gray-300 font-mono">{config.requiredColumns.join(", ")}</span>
+        </p>
+        {config.optionalColumns.length > 0 && (
+          <p className="text-gray-500">
+            Optional:{" "}
+            <span className="text-gray-400 font-mono">{config.optionalColumns.join(", ")}</span>
+          </p>
+        )}
       </div>
 
       {/* File input */}
@@ -179,16 +221,22 @@ export function CsvImporter({ defaultType = "daily_occupancy" }: CsvImporterProp
       {columns.length > 0 && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
           <p className="text-gray-400 text-sm font-medium">Map CSV columns:</p>
-          {config.requiredColumns.map((req) => (
-            <div key={req} className="flex items-center gap-3">
-              <span className="text-gray-300 text-sm w-40 font-mono">{req}</span>
+          {[
+            ...config.requiredColumns.map((c) => ({ col: c, required: true })),
+            ...config.optionalColumns.map((c) => ({ col: c, required: false })),
+          ].map(({ col, required }) => (
+            <div key={col} className="flex items-center gap-3">
+              <span className="text-gray-300 text-sm w-40 font-mono">
+                {col}
+                {!required && <span className="text-gray-600 ml-1 font-sans">(optional)</span>}
+              </span>
               <span className="text-gray-600">←</span>
               <select
-                value={columnMap[req] ?? ""}
-                onChange={(e) => setColumnMap({ ...columnMap, [req]: e.target.value })}
+                value={columnMap[col] ?? ""}
+                onChange={(e) => setColumnMap({ ...columnMap, [col]: e.target.value })}
                 className="rounded-md bg-gray-800 border border-gray-700 text-white px-3 py-1 text-sm"
               >
-                <option value="">— select column —</option>
+                <option value="">{required ? "— select column —" : "— not mapped —"}</option>
                 {columns.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
