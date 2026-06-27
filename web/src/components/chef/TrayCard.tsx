@@ -47,27 +47,47 @@ interface TrayCardProps {
   tray: TrayCardData;
 }
 
+// A tray reading this far above its full-tray weight is flagged "overfilled"
+// (the 5% buffer absorbs normal calibration noise on a genuinely full tray).
+const OVERFILL_THRESHOLD = 105;
+
 export function TrayCard({ tray }: TrayCardProps) {
   const { mode }  = useDisplayMode();
-  const pct       = Math.min(100, Math.max(0, tray.remaining_percent ?? 0));
-  const foodKg    = ((tray.food_weight_grams ?? 0) / 1000).toFixed(1);
-  const fullKg    = ((tray.full_tray_weight_grams ?? 0) / 1000).toFixed(1);
+  // Compute the true % from raw weights — the DB view caps remaining_percent at
+  // 100, which would hide an overfilled tray. food/full is uncapped.
+  const foodGrams = Number(tray.food_weight_grams ?? 0);
+  const fullGrams = Number(tray.full_tray_weight_grams ?? 0);
+  const rawPct    = fullGrams > 0 ? (foodGrams / fullGrams) * 100 : 0;
+  const pct       = Math.min(100, rawPct);                       // for the bar
+  const foodKg    = (foodGrams / 1000).toFixed(1);
+  const fullKg    = (fullGrams / 1000).toFixed(1);
   const showWeight = mode === "weight";
 
   // Derive both the status (for label) and the colour from the fill %.
   // If the underlying state is "offline" (grey), keep that — refill makes no
   // sense for an offline sensor.
-  const isOffline   = tray.color_code === "grey";
-  const refill      = isOffline ? null : getRefillStatus(pct);
-  const colorCode   = (isOffline ? "grey" : refillToColorCode(refill!)) as ColorCode;
-  const colors      = COLOR_MAP[colorCode];
-  const statusLabel = isOffline ? "OFFLINE" : REFILL_LABEL[refill!];
+  const isOffline    = tray.color_code === "grey";
+  const isOverfilled = !isOffline && rawPct > OVERFILL_THRESHOLD;
+  const refill       = isOffline ? null : getRefillStatus(pct);
+  const colorCode    = (isOffline ? "grey" : refillToColorCode(refill!)) as ColorCode;
+  const colors       = COLOR_MAP[colorCode];
+  const statusLabel  = isOffline
+    ? "OFFLINE"
+    : isOverfilled
+      ? "OVERFILLED"
+      : REFILL_LABEL[refill!];
+
+  // When overfilled, surface the true percentage (e.g. 118%) instead of the
+  // capped 100% so the magnitude of the overage is visible.
+  const displayPct = Math.round(isOverfilled ? rawPct : pct);
 
   return (
     <div
       className={[
         "relative rounded-2xl border-2 h-full flex gap-3 p-4",
         colors.card,
+        // Overfilled trays get a distinct blue ring (not red — this isn't urgent)
+        isOverfilled ? "ring-2 ring-blue-400/70" : "",
         // Smooth colour transition when urgency level changes
         "transition-colors duration-700",
       ].join(" ")}
@@ -98,7 +118,11 @@ export function TrayCard({ tray }: TrayCardProps) {
         {/* Refill status badge */}
         <div>
           <span
-            className={`inline-block text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${colors.badge}`}
+            className={`inline-block text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${
+              isOverfilled
+                ? "bg-blue-500/15 border border-blue-400/40 text-blue-200"
+                : colors.badge
+            }`}
           >
             {statusLabel}
           </span>
@@ -126,7 +150,7 @@ export function TrayCard({ tray }: TrayCardProps) {
                 <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60"> kg</span>
               </span>
               <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
-                {Math.round(pct)}%
+                {displayPct}%
               </span>
             </div>
             <span className={`block ${colors.muted} text-xs md:text-sm font-semibold mt-0.5`}>
@@ -139,7 +163,7 @@ export function TrayCard({ tray }: TrayCardProps) {
             <span
               className={`font-black ${colors.text} leading-none text-5xl md:text-6xl xl:text-7xl 2xl:text-8xl`}
             >
-              {Math.round(pct)}
+              {displayPct}
               <span className="text-xl md:text-2xl xl:text-3xl font-bold opacity-60">%</span>
             </span>
             <span className={`font-bold ${colors.muted} pb-1 text-sm md:text-base xl:text-lg`}>
