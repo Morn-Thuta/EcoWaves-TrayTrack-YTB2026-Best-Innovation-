@@ -102,14 +102,30 @@ function openReport(occupancy: Row[], refills: Row[], forecast: ForecastResult |
     <table><thead><tr><th>Date</th><th>Expected</th><th>Actual</th></tr></thead><tbody>${occupancyRows}</tbody></table>
     <h2>Refills by Dish (demand signal)</h2>
     <table><thead><tr><th>Dish</th><th>Refills</th></tr></thead><tbody>${dishRows || "<tr><td colspan=2>No refill data yet</td></tr>"}</tbody></table>
-    <script>window.onload=()=>window.print()</script>
   </body></html>`;
 
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
+  // Render into a hidden iframe and print from there. Unlike window.open(),
+  // this is never killed by the popup blocker (it's part of the same document).
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    iframe.remove();
+    return;
   }
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  // Give the browser a tick to lay out, then open the print dialog
+  // (the user picks "Save as PDF" as the destination).
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => iframe.remove(), 1000);
+  }, 300);
 }
 
 export function AnalyticsExport({ occupancy, refills, forecast }: AnalyticsExportProps) {

@@ -94,11 +94,22 @@ function exportPDF(rows: ComputedRow[], tomorrowPax: number) {
   <h1>Procurement Shopping List &#8212; ${dateStr}</h1>
   <p class="meta">Tomorrow&#39;s expected pax: <strong>${tomorrowPax}</strong> &#xB7; Generated: ${new Date().toLocaleString()}</p>
   <table><thead><tr><th>Ingredient</th><th>Dish</th><th>Current Stock</th><th>Needed</th><th>To Buy</th></tr></thead>
-  <tbody>${tableRows}</tbody></table>
-  <script>window.onload=()=>window.print()</script></body></html>`;
+  <tbody>${tableRows}</tbody></table></body></html>`;
 
-  const win = window.open("", "_blank");
-  if (win) { win.document.write(html); win.document.close(); }
+  // Hidden iframe instead of window.open() — avoids the popup blocker.
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow?.document;
+  if (!doc) { iframe.remove(); return; }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => iframe.remove(), 1000);
+  }, 300);
 }
 
 export function ProcurementView({ ingredients, dishes: _dishes, tomorrowPax, avgPax }: ProcurementViewProps) {
