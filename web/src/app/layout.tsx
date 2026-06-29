@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tray Weight Monitor",
+  title: "TrayTrack",
   description: "Hotel Breakfast Buffet Tray Weight Monitoring System",
 };
 

@@ -39,7 +39,7 @@ export default function LoginPage() {
           <span className="text-3xl">🍽</span>
         </div>
         <h1 className="text-2xl font-black text-white tracking-wide uppercase">
-          Tray Monitor
+          TrayTrack
         </h1>
         <p className="text-gray-500 text-sm mt-1">Hotel Breakfast Buffet System</p>
       </div>

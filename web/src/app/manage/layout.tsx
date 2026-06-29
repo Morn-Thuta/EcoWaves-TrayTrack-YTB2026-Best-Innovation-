@@ -39,7 +39,7 @@ export default async function ManageLayout({
         <div className="flex items-center gap-3">
           <BrandMark size={22} />
           <span className="text-ink-8 text-base font-semibold tracking-tight">
-            Tray Monitor
+            TrayTrack
           </span>
 
           {/* Live pulse dot — signals real-time data */}
