@@ -17,6 +17,12 @@
 
 *Live demo login: `admin@trailblazers.sg` / `Admin1234!` (shared demo account)*
 
+<br>
+
+<img src="firmware/images/05-live-test-egg-tray.jpg" alt="TrayTrack sensor platform under a real tray, streaming weight live" width="70%">
+
+<em>Real hardware: a tray on the TrayTrack load-cell platform, streaming its weight to the kitchen dashboard live. →&nbsp;<a href="firmware/README.md">See the full hardware build</a></em>
+
 </div>
 
 ---
