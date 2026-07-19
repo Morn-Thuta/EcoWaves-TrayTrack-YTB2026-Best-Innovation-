@@ -77,6 +77,8 @@ Real, working hardware — not a render. This is the actual sensor node built fo
 
 ## 🔌 Wiring — 4 load cells into one bridge
 
+<img src="images/06-load-cell-3wire.jpg" alt="A single 50 kg strain-gauge load cell with red, black, and white wires" width="42%" align="right">
+
 Four 50 kg half-bridge cells combine into a single full **Wheatstone bridge**, which the HX711 reads. Each cell has three wires (RED / BLACK / WHITE):
 
 ```
