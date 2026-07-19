@@ -4,7 +4,7 @@ Drop the build photos here with these **exact filenames** so the READMEs render 
 
 | Filename | Photo it should be |
 |---|---|
-| `01-esp32-dev-board.jpg` | The ESP32-WROOM development board (black PCB, micro-USB) |
+| `01-esp32-dev-board.png` | The ESP32-WROOM development board (black PCB, micro-USB) |
 | `02-load-cell-bracket.jpg` | A single 50 kg load cell in its 3D-printed corner bracket (red/black/white wires) |
 | `03-load-cell-platform-wiring.jpg` | Underside of the platform — the four load cells wired together at the corners |
 | `04-assembled-platform.jpg` | The assembled plywood platform wired to the ESP32 + HX711 |

@@ -13,7 +13,7 @@ Real, working hardware — not a render. This is the actual sensor node built fo
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="images/01-esp32-dev-board.jpg" alt="ESP32-WROOM development board" width="100%"><br>
+      <img src="images/01-esp32-dev-board.png" alt="ESP32-WROOM development board" width="100%"><br>
       <em><b>The brain.</b> The ESP32-WROOM dev board — WiFi microcontroller that reads the scale and streams to the cloud.</em>
     </td>
     <td width="50%" valign="top">
