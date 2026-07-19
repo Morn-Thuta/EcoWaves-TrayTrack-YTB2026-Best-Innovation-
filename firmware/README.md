@@ -6,6 +6,42 @@ Each tray gets one sensor node. The node reads four load cells, converts the sig
 
 ---
 
+## 📸 The build
+
+Real, working hardware — not a render. This is the actual sensor node built for the competition.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="images/01-esp32-dev-board.png" alt="ESP32-WROOM development board" width="100%"><br>
+      <em><b>The brain.</b> The ESP32-WROOM dev board — WiFi microcontroller that reads the scale and streams to the cloud.</em>
+    </td>
+    <td width="50%" valign="top">
+      <img src="images/02-load-cell-bracket.jpg" alt="50 kg load cell in a 3D-printed bracket" width="100%"><br>
+      <em><b>One corner.</b> A 50 kg load cell seated in its 3D-printed bracket, 3-wire (red / black / white).</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="images/03-load-cell-platform-wiring.jpg" alt="Four load cells wired as a Wheatstone bridge" width="100%"><br>
+      <em><b>The bridge.</b> Underside of the platform — four load cells at the corners, wired into one Wheatstone bridge.</em>
+    </td>
+    <td width="50%" valign="top">
+      <img src="images/04-assembled-platform.jpg" alt="Assembled weighing platform wired to ESP32 and HX711" width="100%"><br>
+      <em><b>Assembled.</b> The finished weighing platform connected through the HX711 amplifier to the ESP32.</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="images/05-live-test-egg-tray.jpg" alt="Live test with a tray of eggs on the platform" width="100%"><br>
+      <em><b>Live test.</b> A real egg tray on the platform, streaming its weight to the TrayTrack dashboard in real time.</em>
+    </td>
+    <td width="50%" valign="top"></td>
+  </tr>
+</table>
+
+---
+
 ## 🧰 Hardware — Bill of Materials
 
 ### Electronics (per tray)
@@ -40,6 +76,8 @@ Each tray gets one sensor node. The node reads four load cells, converts the sig
 ---
 
 ## 🔌 Wiring — 4 load cells into one bridge
+
+<img src="images/06-load-cell-3wire.jpg" alt="A single 50 kg strain-gauge load cell with red, black, and white wires" width="42%" align="right">
 
 Four 50 kg half-bridge cells combine into a single full **Wheatstone bridge**, which the HX711 reads. Each cell has three wires (RED / BLACK / WHITE):
 
@@ -172,3 +210,15 @@ The node POSTs JSON to `{SUPABASE_URL}/functions/v1/ingest-reading`:
 ```
 
 From there, the [backend](../supabase/README.md) validates it, stores it, updates the tray, and the [web dashboard](../web/README.md) reflects it live within seconds.
+
+---
+
+## 🙏 Credits & references
+
+The physical load-cell platform — wiring four 50 kg cells into a Wheatstone bridge and reading them with an HX711 on an ESP32 — was built with reference to this excellent tutorial. Full credit to the creator for the clear walkthrough that helped us get our hardware working:
+
+> 📺 **[Building a load-cell scale with ESP32 + HX711](https://youtu.be/LIuf2egMioA)** — by **Indrek**
+
+We adapted the approach for a buffet-tray form factor (3D-printed corner brackets, kitchen-grade stainless hardware) and built the firmware, calibration workflow, offline buffering, and cloud pipeline on top of it.
+
+*If you found this project useful, please credit **Team EcoWaves — TrayTrack** in turn.*
