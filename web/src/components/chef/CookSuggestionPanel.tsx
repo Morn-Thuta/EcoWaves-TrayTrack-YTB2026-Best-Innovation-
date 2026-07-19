@@ -6,61 +6,70 @@ interface CookSuggestionPanelProps {
   suggestions: CookSuggestion[];
 }
 
-const URGENCY_STYLE: Record<CookSuggestion["urgency"], { bg: string; border: string; label: string; labelColor: string }> = {
+const STYLE: Record<
+  CookSuggestion["urgency"],
+  { card: string; label: string; labelClass: string; kgClass: string; pulse: boolean }
+> = {
   immediate: {
-    bg: "bg-red-950",
-    border: "border-red-600",
-    label: "COOK NOW",
-    labelColor: "text-red-400",
+    card:       "bg-red-950 border-red-500/70 animate-urgent-glow",
+    label:      "COOK NOW",
+    labelClass: "text-red-400",
+    kgClass:    "text-red-100",
+    pulse:      true,
   },
   soon: {
-    bg: "bg-amber-950",
-    border: "border-amber-600",
-    label: "COOK SOON",
-    labelColor: "text-amber-400",
+    card:       "bg-amber-950 border-amber-500/60",
+    label:      "COOK SOON",
+    labelClass: "text-amber-400",
+    kgClass:    "text-amber-100",
+    pulse:      false,
   },
   planned: {
-    bg: "bg-gray-900",
-    border: "border-gray-700",
-    label: "START COOKING",
-    labelColor: "text-gray-400",
+    card:       "bg-gray-900 border-gray-700/60",
+    label:      "PREPARE",
+    labelClass: "text-gray-400",
+    kgClass:    "text-gray-100",
+    pulse:      false,
   },
-};
-
-const CONFIDENCE_LABEL: Record<CookSuggestion["confidence"], string> = {
-  high:   "High confidence",
-  medium: "Medium confidence",
-  low:    "Low confidence",
 };
 
 export function CookSuggestionPanel({ suggestions }: CookSuggestionPanelProps) {
   if (suggestions.length === 0) return null;
 
+  // Max 4 suggestions shown — engine rarely returns more
+  const visible = suggestions.slice(0, 4);
+
   return (
-    <div className="space-y-2">
-      <h2 className="text-gray-400 text-sm font-bold uppercase tracking-widest px-1">
-        Cook Suggestions
-      </h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {suggestions.map((s) => {
-          const style = URGENCY_STYLE[s.urgency];
-          return (
-            <div
-              key={s.trayId}
-              className={`${style.bg} border ${style.border} rounded-xl px-5 py-4 flex flex-col gap-1`}
+    <div className="flex gap-3 h-24">
+      {visible.map((s) => {
+        const st = STYLE[s.urgency];
+        return (
+          <div
+            key={s.trayId}
+            className={`flex-1 border-2 rounded-xl px-4 flex flex-col justify-between py-2.5 ${st.card}`}
+          >
+            {/* Urgency label */}
+            <span
+              className={`text-[11px] font-black uppercase tracking-widest ${st.labelClass} ${
+                st.pulse ? "animate-pulse" : ""
+              }`}
             >
-              <span className={`text-xs font-black uppercase tracking-widest ${style.labelColor}`}>
-                {style.label}
-              </span>
-              <span className="text-white text-xl font-bold">{s.dishName}</span>
-              <span className="text-gray-300 text-base">
-                {s.batchSize} portions · {s.cookTimeMinutes} min cook
-              </span>
-              <span className="text-gray-500 text-xs">{CONFIDENCE_LABEL[s.confidence]}</span>
-            </div>
-          );
-        })}
-      </div>
+              {st.label}
+            </span>
+
+            {/* Dish name */}
+            <span className="text-white text-base font-bold leading-tight truncate">
+              {s.dishName}
+            </span>
+
+            {/* Hero kg */}
+            <span className={`text-2xl font-black ${st.kgClass} leading-none`}>
+              ~{s.recommendedWeightKg}
+              <span className="text-sm font-semibold opacity-60"> kg</span>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

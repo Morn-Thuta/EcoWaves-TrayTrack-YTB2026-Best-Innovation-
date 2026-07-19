@@ -1,78 +1,68 @@
 import { createClient } from "@/lib/supabase/server";
 import { TrayGrid } from "@/components/chef/TrayGrid";
+import { ChefHeader } from "@/components/chef/ChefHeader";
+import { DisplayModeProvider } from "@/components/chef/DisplayModeContext";
 
 export const dynamic = "force-dynamic";
-
-type OccupancyData = { expected_pax: number; actual_pax: number | null } | null;
-
-async function getTodayOccupancy(): Promise<OccupancyData> {
-  const supabase = await createClient();
-  const today = new Date().toISOString().split("T")[0];
-
-  const { data } = await supabase
-    .from("daily_occupancy")
-    .select("expected_pax, actual_pax")
-    .eq("date", today)
-    .maybeSingle();
-
-  return data as OccupancyData;
-}
 
 async function getHistoricalAvgPax(): Promise<number | null> {
   const supabase = await createClient();
 
   const { data } = await supabase
     .from("daily_occupancy")
-    .select("actual_pax")
+    .select("actual_pax, expected_pax")
     .order("date", { ascending: false })
     .limit(30);
 
   if (!data || data.length === 0) return null;
 
-  const rows = data as Array<{ actual_pax: number | null }>;
-  const withActual = rows.filter((r) => r.actual_pax != null);
-  if (withActual.length === 0) return null;
+  const rows = data as Array<{ actual_pax: number | null; expected_pax: number }>;
+  const values = rows.map((r) => r.actual_pax ?? r.expected_pax).filter(Boolean) as number[];
+  if (values.length === 0) return null;
 
-  const sum = withActual.reduce((acc, row) => acc + (row.actual_pax ?? 0), 0);
-  return Math.round(sum / withActual.length);
+  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 }
 
 export default async function ChefDashboardPage() {
-  const [todayOccupancy, historicalAvgPax] = await Promise.all([
-    getTodayOccupancy(),
-    getHistoricalAvgPax(),
-  ]);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const todayPax =
-    todayOccupancy?.actual_pax ?? todayOccupancy?.expected_pax ?? null;
+  // Fetch the viewer's role so the chef header can show the back-to-manage
+  // affordance only for admin / F&B / kitchen manager users. Kitchen-floor
+  // chefs (or signed-out viewers like a TV display) see the pure chef UI.
+  let role: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+    role = profile?.role ?? null;
+  }
+
+  // Offline sensor count for the header status pill (initial render only —
+  // updated on full page reload so we don't double-subscribe the realtime
+  // channel that TrayGrid already owns).
+  const { data: sensors } = await supabase
+    .from("sensors")
+    .select("connection_status");
+  const initialOfflineCount = (sensors ?? []).filter(
+    (s: { connection_status?: string }) =>
+      s.connection_status !== "online"
+  ).length;
+
+  const historicalAvgPax = await getHistoricalAvgPax();
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-white text-2xl font-black tracking-wide">
-            BREAKFAST BUFFET
-          </h1>
-          <p className="text-gray-400 text-sm">Live Tray Monitor</p>
-        </div>
-        <div className="text-right">
-          {todayPax && (
-            <div>
-              <span className="text-gray-400 text-xs uppercase tracking-wide">Today&apos;s Pax</span>
-              <p className="text-white text-3xl font-black">{todayPax}</p>
-            </div>
-          )}
-        </div>
-      </header>
+    <div className="h-dvh overflow-hidden bg-ink-0 flex flex-col">
+      <DisplayModeProvider>
+        <ChefHeader role={role} initialOfflineCount={initialOfflineCount} />
 
-      {/* Main content */}
-      <main className="flex-1 p-6">
-        <TrayGrid
-          todayPax={todayPax}
-          historicalAvgPax={historicalAvgPax}
-        />
-      </main>
+        {/* Main content — flex-1 + min-h-0 prevents overflow */}
+        <main className="flex-1 min-h-0 p-4">
+          <TrayGrid historicalAvgPax={historicalAvgPax} />
+        </main>
+      </DisplayModeProvider>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import type { UserProfile } from "@/types/domain";
-import type { UserRole } from "@/types/database";
+import type { UserProfile, UserRole } from "@/types/domain";
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 

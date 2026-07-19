@@ -45,10 +45,10 @@ export function getDepletionRate(trayId: string): number | null {
  * Returns null if depletion rate is unknown or zero.
  */
 export function getEstimatedMinutesToEmpty(tray: TrayDashboardItem): number | null {
-  const rate = getDepletionRate(tray.tray_id);
+  const rate = getDepletionRate(tray.tray_id ?? "");
   if (!rate || rate <= 0) return null;
 
-  const foodWeightGrams = tray.food_weight_grams;
+  const foodWeightGrams = tray.food_weight_grams ?? 0;
   if (foodWeightGrams <= 0) return 0;
 
   return Math.round(foodWeightGrams / rate);
@@ -70,6 +70,27 @@ export function getTrend(trayId: string): "up" | "down" | "stable" {
   if (delta < -50) return "down"; // Lost more than 50g
   if (delta > 200) return "up";   // Gained more than 200g (refill)
   return "stable";
+}
+
+/**
+ * Returns how many minutes of history we have for this tray.
+ * Used to determine confidence in depletion-based suggestions.
+ */
+export function getHistoryAgeMinutes(trayId: string): number {
+  const history = trayHistory.get(trayId);
+  if (!history || history.length < 2) return 0;
+  const oldest = history[0];
+  const newest = history[history.length - 1];
+  return (newest.timestamp - oldest.timestamp) / 60000;
+}
+
+/**
+ * Returns the raw weight history for a tray (newest first, up to 50 points).
+ */
+export function getWeightHistory(trayId: string): Array<{ weight: number; timestamp: number }> {
+  const history = trayHistory.get(trayId);
+  if (!history) return [];
+  return [...history].reverse().slice(0, 50);
 }
 
 /**

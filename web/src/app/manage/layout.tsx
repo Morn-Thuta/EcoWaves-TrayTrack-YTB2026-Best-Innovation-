@@ -1,15 +1,10 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-
-const TABS = [
-  { href: "/manage/config",       label: "Config",      icon: "⚙" },
-  { href: "/manage/guests",       label: "Guests",      icon: "👥" },
-  { href: "/manage/procurement",  label: "Procurement", icon: "🛒" },
-  { href: "/manage/analytics",    label: "Analytics",   icon: "📊" },
-  { href: "/manage/admin",        label: "Admin",       icon: "🔧" },
-  { href: "/manage/import",       label: "Import",      icon: "📁" },
-];
+import { TabNav } from "@/components/manage/TabNav";
+import { TutorialButton } from "@/components/manage/TutorialButton";
+import { BrandMark } from "@/components/manage/BrandMark";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { roleLabel, canSwitchViews } from "@/lib/roles";
 
 export default async function ManageLayout({
   children,
@@ -29,50 +24,59 @@ export default async function ManageLayout({
     .eq("user_id", user.id)
     .single();
 
-  // Chefs should be on the chef dashboard
   if (profile?.role === "chef") redirect("/chef");
 
+  const displayName = profile?.display_name ?? user.email ?? "—";
+  const initials =
+    (displayName.match(/\b\w/g) ?? []).slice(0, 2).join("").toUpperCase() || "?";
+  const showToggle = canSwitchViews(profile?.role);
+
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-white text-xl font-black tracking-wide">
-            Tray Monitor — Management
-          </h1>
-          <Link
-            href="/chef"
-            className="text-gray-400 hover:text-white text-sm border border-gray-700 hover:border-gray-500 px-3 py-1 rounded-lg transition-colors"
-          >
-            → Chef View
-          </Link>
+    <div className="min-h-screen bg-ink-0 text-ink-8 flex flex-col">
+      {/* ── Header — 56px, brand left, ⌘K + user right ─────────────────── */}
+      <header className="scanline bg-ink-1 h-14 px-6 flex items-center justify-between flex-shrink-0">
+        {/* Brand cluster */}
+        <div className="flex items-center gap-3">
+          <BrandMark size={22} />
+          <span className="text-ink-8 text-base font-semibold tracking-tight">
+            TrayTrack
+          </span>
+
+          {/* Live pulse dot — signals real-time data */}
+          <span className="flex items-center gap-1.5 ml-2 pl-3 border-l border-ink-4">
+            <span className="relative inline-flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-accent animate-live-pulse" />
+            </span>
+            <span className="text-ink-6 text-xs font-medium tracking-wide">LIVE</span>
+          </span>
         </div>
-        <div className="text-right">
-          <p className="text-gray-400 text-sm">
-            {profile?.display_name ?? user.email}
-          </p>
-          <p className="text-gray-600 text-xs capitalize">{profile?.role}</p>
+
+        {/* Right cluster: ViewToggle, Tour, User avatar */}
+        <div className="flex items-center gap-3">
+          {showToggle && <ViewToggle />}
+          <TutorialButton />
+
+          {/* User avatar chip */}
+          <div className="flex items-center gap-2 pl-3 border-l border-ink-4">
+            <div
+              className="h-7 w-7 rounded-full bg-ink-3 border border-ink-4 flex items-center justify-center text-ink-8 text-[11px] font-semibold tracking-tight"
+              aria-label={displayName}
+            >
+              {initials}
+            </div>
+            <div className="hidden md:flex flex-col leading-tight">
+              <span className="text-ink-8 text-[13px] font-medium">{displayName}</span>
+              <span className="text-ink-6 text-[11px]">{roleLabel(profile?.role)}</span>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Tab navigation */}
-      <nav className="bg-gray-900 border-b border-gray-800 px-6">
-        <div className="flex gap-1 overflow-x-auto">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent hover:border-gray-500 transition-colors whitespace-nowrap"
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      {/* Tab navigation — pill-style */}
+      <TabNav />
 
       {/* Tab content */}
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 px-6 py-6 max-w-7xl mx-auto w-full">
         {children}
       </main>
     </div>

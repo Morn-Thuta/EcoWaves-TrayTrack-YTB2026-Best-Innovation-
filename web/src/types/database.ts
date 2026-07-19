@@ -1,257 +1,779 @@
-// Auto-generated types will replace this file via `supabase gen types typescript`
-// For now, define the schema manually to unblock development
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export type UserRole =
-  | "chef"
-  | "kitchen_manager"
-  | "procurement"
-  | "fb_director"
-  | "admin";
-
-export type TrayStatus = "active" | "offline" | "maintenance";
-export type ConnectionStatus = "online" | "offline" | "stale";
-export type AlertType = "low" | "critical" | "offline" | "stale";
-export type OccupancySource = "manual" | "mock" | "pms";
-export type ColorCode = "green" | "amber" | "red" | "grey";
-
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      dishes: {
-        Row: {
-          dish_id: string;
-          name: string;
-          category: string | null;
-          dish_type: string | null;
-          full_tray_weight_grams: number;
-          tare_weight_grams: number;
-          batch_size: number;
-          cook_trigger_percent: number;
-          average_cook_time_minutes: number;
-          popularity_score: number;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["dishes"]["Row"],
-          "dish_id" | "created_at" | "updated_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["dishes"]["Insert"]>;
-      };
-      trays: {
-        Row: {
-          tray_id: string;
-          dish_id: string | null;
-          sensor_id: string | null;
-          tray_name: string;
-          location: string | null;
-          tare_weight_grams: number;
-          full_tray_weight_grams: number;
-          status: TrayStatus;
-          last_weight_grams: number;
-          last_updated_at: string;
-          created_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["trays"]["Row"],
-          "tray_id" | "created_at" | "last_updated_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["trays"]["Insert"]>;
-      };
-      sensors: {
-        Row: {
-          sensor_id: string;
-          tray_id: string | null;
-          sensor_type: string;
-          calibration_factor: number;
-          firmware_version: string | null;
-          connection_status: ConnectionStatus;
-          battery_level: number | null;
-          installed_at: string | null;
-          last_seen_at: string | null;
-          created_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["sensors"]["Row"],
-          "sensor_id" | "created_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["sensors"]["Insert"]>;
-      };
-      sensor_readings: {
-        Row: {
-          reading_id: string;
-          sensor_id: string;
-          tray_id: string;
-          weight_grams: number;
-          recorded_at: string;
-          is_averaged: boolean;
-          batch_source_count: number | null;
-          synced_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["sensor_readings"]["Row"],
-          "reading_id" | "synced_at"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["sensor_readings"]["Insert"]
-        >;
-      };
-      daily_occupancy: {
-        Row: {
-          id: string;
-          date: string;
-          expected_pax: number;
-          actual_pax: number | null;
-          source: OccupancySource;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["daily_occupancy"]["Row"],
-          "id" | "created_at" | "updated_at"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["daily_occupancy"]["Insert"]
-        >;
-      };
-      refill_events: {
-        Row: {
-          refill_id: string;
-          tray_id: string;
-          detected_at: string;
-          weight_before_grams: number;
-          weight_after_grams: number;
-          delta_grams: number;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["refill_events"]["Row"],
-          "refill_id"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["refill_events"]["Insert"]
-        >;
-      };
-      batches: {
-        Row: {
-          batch_id: string;
-          dish_id: string;
-          batch_size: number;
-          cooked_quantity: number | null;
-          refill_quantity: number | null;
-          cooked_at: string;
-          reason: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["batches"]["Row"],
-          "batch_id"
-        >;
-        Update: Partial<Database["public"]["Tables"]["batches"]["Insert"]>;
-      };
-      ingredients: {
-        Row: {
-          ingredient_id: string;
-          name: string;
-          unit_of_measure: string;
-          recipe_quantity: number;
-          dish_id: string;
-          supplier_name: string | null;
-          substitution_group: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["ingredients"]["Row"],
-          "ingredient_id"
-        >;
-        Update: Partial<Database["public"]["Tables"]["ingredients"]["Insert"]>;
-      };
-      procurement_suggestions: {
-        Row: {
-          suggestion_id: string;
-          generated_at: string;
-          ingredient_id: string;
-          suggested_quantity: number;
-          confidence_score: number;
-          target_date: string;
-          export_status: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["procurement_suggestions"]["Row"],
-          "suggestion_id" | "generated_at"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["procurement_suggestions"]["Insert"]
-        >;
-      };
       alert_log: {
         Row: {
-          alert_id: string;
-          tray_id: string;
-          alert_type: AlertType;
-          triggered_at: string;
-          resolved_at: string | null;
-          acknowledged_by: string | null;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["alert_log"]["Row"],
-          "alert_id" | "triggered_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["alert_log"]["Insert"]>;
-      };
+          acknowledged_by: string | null
+          alert_id: string
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          resolved_at: string | null
+          tray_id: string
+          triggered_at: string
+        }
+        Insert: {
+          acknowledged_by?: string | null
+          alert_id?: string
+          alert_type: Database["public"]["Enums"]["alert_type"]
+          resolved_at?: string | null
+          tray_id: string
+          triggered_at?: string
+        }
+        Update: {
+          acknowledged_by?: string | null
+          alert_id?: string
+          alert_type?: Database["public"]["Enums"]["alert_type"]
+          resolved_at?: string | null
+          tray_id?: string
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_log_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "alert_log_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["tray_id"]
+          },
+          {
+            foreignKeyName: "alert_log_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "trays"
+            referencedColumns: ["tray_id"]
+          },
+        ]
+      }
+      batches: {
+        Row: {
+          batch_id: string
+          batch_size: number
+          cooked_at: string
+          cooked_quantity: number | null
+          dish_id: string
+          reason: string | null
+          refill_quantity: number | null
+        }
+        Insert: {
+          batch_id?: string
+          batch_size: number
+          cooked_at?: string
+          cooked_quantity?: number | null
+          dish_id: string
+          reason?: string | null
+          refill_quantity?: number | null
+        }
+        Update: {
+          batch_id?: string
+          batch_size?: number
+          cooked_at?: string
+          cooked_quantity?: number | null
+          dish_id?: string
+          reason?: string | null
+          refill_quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batches_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["dish_id"]
+          },
+          {
+            foreignKeyName: "batches_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["dish_id"]
+          },
+        ]
+      }
+      daily_occupancy: {
+        Row: {
+          actual_pax: number | null
+          created_at: string
+          date: string
+          expected_pax: number
+          id: string
+          notes: string | null
+          source: Database["public"]["Enums"]["occupancy_source"]
+          updated_at: string
+        }
+        Insert: {
+          actual_pax?: number | null
+          created_at?: string
+          date: string
+          expected_pax: number
+          id?: string
+          notes?: string | null
+          source?: Database["public"]["Enums"]["occupancy_source"]
+          updated_at?: string
+        }
+        Update: {
+          actual_pax?: number | null
+          created_at?: string
+          date?: string
+          expected_pax?: number
+          id?: string
+          notes?: string | null
+          source?: Database["public"]["Enums"]["occupancy_source"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dishes: {
+        Row: {
+          average_cook_time_minutes: number
+          batch_size: number
+          category: string | null
+          cook_trigger_percent: number
+          created_at: string
+          dish_id: string
+          dish_type: string | null
+          full_tray_weight_grams: number
+          is_active: boolean
+          name: string
+          popularity_score: number
+          tare_weight_grams: number
+          updated_at: string
+        }
+        Insert: {
+          average_cook_time_minutes?: number
+          batch_size?: number
+          category?: string | null
+          cook_trigger_percent?: number
+          created_at?: string
+          dish_id?: string
+          dish_type?: string | null
+          full_tray_weight_grams: number
+          is_active?: boolean
+          name: string
+          popularity_score?: number
+          tare_weight_grams?: number
+          updated_at?: string
+        }
+        Update: {
+          average_cook_time_minutes?: number
+          batch_size?: number
+          category?: string | null
+          cook_trigger_percent?: number
+          created_at?: string
+          dish_id?: string
+          dish_type?: string | null
+          full_tray_weight_grams?: number
+          is_active?: boolean
+          name?: string
+          popularity_score?: number
+          tare_weight_grams?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          current_stock: number
+          dish_id: string
+          ingredient_id: string
+          name: string
+          recipe_quantity: number
+          stock_updated_at: string | null
+          substitution_group: string | null
+          supplier_name: string | null
+          unit_of_measure: string
+        }
+        Insert: {
+          current_stock?: number
+          dish_id: string
+          ingredient_id?: string
+          name: string
+          recipe_quantity: number
+          stock_updated_at?: string | null
+          substitution_group?: string | null
+          supplier_name?: string | null
+          unit_of_measure: string
+        }
+        Update: {
+          current_stock?: number
+          dish_id?: string
+          ingredient_id?: string
+          name?: string
+          recipe_quantity?: number
+          stock_updated_at?: string | null
+          substitution_group?: string | null
+          supplier_name?: string | null
+          unit_of_measure?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["dish_id"]
+          },
+          {
+            foreignKeyName: "ingredients_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["dish_id"]
+          },
+        ]
+      }
+      procurement_suggestions: {
+        Row: {
+          confidence_score: number
+          export_status: string
+          generated_at: string
+          ingredient_id: string
+          suggested_quantity: number
+          suggestion_id: string
+          target_date: string
+        }
+        Insert: {
+          confidence_score: number
+          export_status?: string
+          generated_at?: string
+          ingredient_id: string
+          suggested_quantity: number
+          suggestion_id?: string
+          target_date: string
+        }
+        Update: {
+          confidence_score?: number
+          export_status?: string
+          generated_at?: string
+          ingredient_id?: string
+          suggested_quantity?: number
+          suggestion_id?: string
+          target_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_suggestions_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["ingredient_id"]
+          },
+        ]
+      }
+      refill_events: {
+        Row: {
+          delta_grams: number
+          detected_at: string
+          refill_id: string
+          tray_id: string
+          weight_after_grams: number
+          weight_before_grams: number
+        }
+        Insert: {
+          delta_grams: number
+          detected_at?: string
+          refill_id?: string
+          tray_id: string
+          weight_after_grams: number
+          weight_before_grams: number
+        }
+        Update: {
+          delta_grams?: number
+          detected_at?: string
+          refill_id?: string
+          tray_id?: string
+          weight_after_grams?: number
+          weight_before_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refill_events_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["tray_id"]
+          },
+          {
+            foreignKeyName: "refill_events_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "trays"
+            referencedColumns: ["tray_id"]
+          },
+        ]
+      }
+      sensor_readings: {
+        Row: {
+          batch_source_count: number | null
+          is_averaged: boolean
+          reading_id: string
+          recorded_at: string
+          sensor_id: string
+          synced_at: string
+          tray_id: string
+          weight_grams: number
+        }
+        Insert: {
+          batch_source_count?: number | null
+          is_averaged?: boolean
+          reading_id?: string
+          recorded_at?: string
+          sensor_id: string
+          synced_at?: string
+          tray_id: string
+          weight_grams: number
+        }
+        Update: {
+          batch_source_count?: number | null
+          is_averaged?: boolean
+          reading_id?: string
+          recorded_at?: string
+          sensor_id?: string
+          synced_at?: string
+          tray_id?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensor_readings_sensor_id_fkey"
+            columns: ["sensor_id"]
+            isOneToOne: false
+            referencedRelation: "sensors"
+            referencedColumns: ["sensor_id"]
+          },
+          {
+            foreignKeyName: "sensor_readings_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["tray_id"]
+          },
+          {
+            foreignKeyName: "sensor_readings_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "trays"
+            referencedColumns: ["tray_id"]
+          },
+        ]
+      }
+      sensors: {
+        Row: {
+          battery_level: number | null
+          calibration_factor: number
+          connection_status: Database["public"]["Enums"]["connection_status"]
+          created_at: string
+          firmware_version: string | null
+          installed_at: string | null
+          last_seen_at: string | null
+          sensor_id: string
+          sensor_type: string
+          tray_id: string | null
+        }
+        Insert: {
+          battery_level?: number | null
+          calibration_factor?: number
+          connection_status?: Database["public"]["Enums"]["connection_status"]
+          created_at?: string
+          firmware_version?: string | null
+          installed_at?: string | null
+          last_seen_at?: string | null
+          sensor_id?: string
+          sensor_type?: string
+          tray_id?: string | null
+        }
+        Update: {
+          battery_level?: number | null
+          calibration_factor?: number
+          connection_status?: Database["public"]["Enums"]["connection_status"]
+          created_at?: string
+          firmware_version?: string | null
+          installed_at?: string | null
+          last_seen_at?: string | null
+          sensor_id?: string
+          sensor_type?: string
+          tray_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sensors_tray"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["tray_id"]
+          },
+          {
+            foreignKeyName: "fk_sensors_tray"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "trays"
+            referencedColumns: ["tray_id"]
+          },
+        ]
+      }
+      trays: {
+        Row: {
+          created_at: string
+          dish_id: string | null
+          full_tray_weight_grams: number
+          last_updated_at: string
+          last_weight_grams: number
+          location: string | null
+          sensor_id: string | null
+          status: Database["public"]["Enums"]["tray_status"]
+          tare_weight_grams: number
+          tray_id: string
+          tray_name: string
+        }
+        Insert: {
+          created_at?: string
+          dish_id?: string | null
+          full_tray_weight_grams?: number
+          last_updated_at?: string
+          last_weight_grams?: number
+          location?: string | null
+          sensor_id?: string | null
+          status?: Database["public"]["Enums"]["tray_status"]
+          tare_weight_grams?: number
+          tray_id?: string
+          tray_name: string
+        }
+        Update: {
+          created_at?: string
+          dish_id?: string | null
+          full_tray_weight_grams?: number
+          last_updated_at?: string
+          last_weight_grams?: number
+          location?: string | null
+          sensor_id?: string | null
+          status?: Database["public"]["Enums"]["tray_status"]
+          tare_weight_grams?: number
+          tray_id?: string
+          tray_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trays_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["dish_id"]
+          },
+          {
+            foreignKeyName: "trays_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["dish_id"]
+          },
+          {
+            foreignKeyName: "trays_sensor_id_fkey"
+            columns: ["sensor_id"]
+            isOneToOne: false
+            referencedRelation: "sensors"
+            referencedColumns: ["sensor_id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
-          user_id: string;
-          display_name: string;
-          role: UserRole;
-          created_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["user_profiles"]["Row"],
-          "created_at"
-        >;
-        Update: Partial<Database["public"]["Tables"]["user_profiles"]["Insert"]>;
-      };
-    };
+          created_at: string
+          display_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weight_aggregates: {
+        Row: {
+          avg_weight_grams: number
+          created_at: string
+          id: string
+          max_weight_grams: number
+          min_weight_grams: number
+          period_minutes: number
+          period_start: string
+          reading_count: number
+          tray_id: string
+        }
+        Insert: {
+          avg_weight_grams: number
+          created_at?: string
+          id?: string
+          max_weight_grams: number
+          min_weight_grams: number
+          period_minutes: number
+          period_start: string
+          reading_count: number
+          tray_id: string
+        }
+        Update: {
+          avg_weight_grams?: number
+          created_at?: string
+          id?: string
+          max_weight_grams?: number
+          min_weight_grams?: number
+          period_minutes?: number
+          period_start?: string
+          reading_count?: number
+          tray_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weight_aggregates_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "tray_dashboard_view"
+            referencedColumns: ["tray_id"]
+          },
+          {
+            foreignKeyName: "weight_aggregates_tray_id_fkey"
+            columns: ["tray_id"]
+            isOneToOne: false
+            referencedRelation: "trays"
+            referencedColumns: ["tray_id"]
+          },
+        ]
+      }
+    }
     Views: {
       tray_dashboard_view: {
         Row: {
-          tray_id: string;
-          tray_name: string;
-          location: string | null;
-          status: TrayStatus;
-          dish_name: string;
-          category: string | null;
-          dish_type: string | null;
-          cook_trigger_percent: number;
-          average_cook_time_minutes: number;
-          batch_size: number;
-          last_weight_grams: number;
-          food_weight_grams: number;
-          remaining_percent: number;
-          last_updated_at: string;
-          connection_status: ConnectionStatus;
-          color_code: ColorCode;
-          sensor_id: string | null;
-          dish_id: string;
-          full_tray_weight_grams: number;
-        };
-      };
-    };
-    Functions: Record<string, unknown>;
+          average_cook_time_minutes: number | null
+          batch_size: number | null
+          category: string | null
+          color_code: string | null
+          connection_status:
+            | Database["public"]["Enums"]["connection_status"]
+            | null
+          cook_trigger_percent: number | null
+          dish_id: string | null
+          dish_name: string | null
+          dish_type: string | null
+          food_weight_grams: number | null
+          full_tray_weight_grams: number | null
+          last_updated_at: string | null
+          last_weight_grams: number | null
+          location: string | null
+          remaining_percent: number | null
+          sensor_id: string | null
+          status: Database["public"]["Enums"]["tray_status"] | null
+          tray_id: string | null
+          tray_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trays_sensor_id_fkey"
+            columns: ["sensor_id"]
+            isOneToOne: false
+            referencedRelation: "sensors"
+            referencedColumns: ["sensor_id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      fn_calculate_consumption_rate: {
+        Args: { p_tray_id: string; p_window_minutes?: number }
+        Returns: number
+      }
+      fn_detect_refill: {
+        Args: { p_threshold_grams?: number; p_tray_id: string }
+        Returns: boolean
+      }
+      fn_simulate_sensor_tick: { Args: never; Returns: undefined }
+      fn_update_tray_weight: {
+        Args: {
+          p_recorded_at?: string
+          p_sensor_id: string
+          p_weight_grams: number
+        }
+        Returns: undefined
+      }
+      get_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+    }
     Enums: {
-      user_role: UserRole;
-      tray_status: TrayStatus;
-      connection_status: ConnectionStatus;
-      alert_type: AlertType;
-      occupancy_source: OccupancySource;
-    };
-  };
+      alert_type: "low" | "critical" | "offline" | "stale"
+      connection_status: "online" | "offline" | "stale"
+      occupancy_source: "manual" | "mock" | "pms"
+      tray_status: "active" | "offline" | "maintenance"
+      user_role:
+        | "chef"
+        | "kitchen_manager"
+        | "procurement"
+        | "fb_director"
+        | "admin"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      alert_type: ["low", "critical", "offline", "stale"],
+      connection_status: ["online", "offline", "stale"],
+      occupancy_source: ["manual", "mock", "pms"],
+      tray_status: ["active", "offline", "maintenance"],
+      user_role: [
+        "chef",
+        "kitchen_manager",
+        "procurement",
+        "fb_director",
+        "admin",
+      ],
+    },
+  },
+} as const

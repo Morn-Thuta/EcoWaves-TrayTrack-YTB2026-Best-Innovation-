@@ -1,5 +1,5 @@
 import type { TrayDashboardItem, CookSuggestion } from "@/types/domain";
-import { getDepletionRate } from "./consumption";
+import { getDepletionRate, getHistoryAgeMinutes } from "./consumption";
 
 const BUFFER_MINUTES = 10; // Extra buffer beyond cook time
 
@@ -14,19 +14,21 @@ export function getCookSuggestion(
 ): CookSuggestion | null {
   // Don't suggest for offline or maintenance trays
   if (tray.status !== "active") return null;
-  if (tray.color_code === "grey") return null;
+  if ((tray.color_code ?? "grey") === "grey") return null;
+  // Ready-to-serve dishes (salads, fruit, etc.) don't need cooking
+  if (tray.dish_type === "ready-to-serve") return null;
 
-  const remainingPercent = tray.remaining_percent;
-  const depletionRate = getDepletionRate(tray.tray_id); // g/min
+  const remainingPercent = tray.remaining_percent ?? 0;
+  const depletionRate = getDepletionRate(tray.tray_id ?? ""); // g/min
 
   // Calculate minutes to empty
   let minutesToEmpty: number | null = null;
   if (depletionRate && depletionRate > 0) {
-    minutesToEmpty = Math.round(tray.food_weight_grams / depletionRate);
+    minutesToEmpty = Math.round((tray.food_weight_grams ?? 0) / depletionRate);
   }
 
-  const cookTime = tray.average_cook_time_minutes;
-  const triggerThreshold = tray.cook_trigger_percent;
+  const cookTime = tray.average_cook_time_minutes ?? 30;
+  const triggerThreshold = tray.cook_trigger_percent ?? 35;
 
   // Determine if action is needed
   const shouldSuggest =
@@ -35,28 +37,37 @@ export function getCookSuggestion(
 
   if (!shouldSuggest) return null;
 
-  // Calculate suggested batch size
-  let batchSize = tray.batch_size;
+  // Calculate demand factor from pax
+  let demandFactor = 1;
   if (todayPax && historicalAvgPax && historicalAvgPax > 0) {
-    const demandFactor = todayPax / historicalAvgPax;
-    batchSize = Math.ceil(batchSize * demandFactor);
+    demandFactor = todayPax / historicalAvgPax;
   }
+
+  // Calculate suggested batch size
+  let batchSize = tray.batch_size ?? 1;
+  batchSize = Math.ceil(batchSize * demandFactor);
+
+  // Calculate recommended cook weight in kg
+  const fullWeight = tray.full_tray_weight_grams ?? 0;
+  const currentWeight = tray.food_weight_grams ?? 0;
+  const rawFillWeight = Math.max(0, fullWeight - currentWeight) * demandFactor;
+  const recommendedWeightKg = Math.min(rawFillWeight, fullWeight) / 1000;
 
   // Determine urgency
   let urgency: CookSuggestion["urgency"] = "planned";
-  if (tray.color_code === "red") {
+  if ((tray.color_code ?? "grey") === "red") {
     urgency = "immediate";
   } else if (minutesToEmpty !== null && minutesToEmpty <= cookTime + BUFFER_MINUTES) {
     urgency = "soon";
   }
 
-  // Determine confidence based on data available
+  // Determine confidence based on how much history we have for this tray
   let confidence: CookSuggestion["confidence"] = "low";
   if (depletionRate && minutesToEmpty !== null) {
-    const historyAge = minutesToEmpty; // Rough proxy
-    if (historyAge >= 30 || remainingPercent <= 10) {
+    const historyAge = getHistoryAgeMinutes(tray.tray_id ?? ""); // actual minutes of data
+    if (historyAge >= 3 || remainingPercent <= 10) {
       confidence = "high";
-    } else if (historyAge >= 10) {
+    } else if (historyAge >= 1) {
       confidence = "medium";
     }
   } else if (remainingPercent <= triggerThreshold) {
@@ -64,12 +75,13 @@ export function getCookSuggestion(
   }
 
   return {
-    dishName: tray.dish_name,
-    dishId: tray.dish_id,
-    trayId: tray.tray_id,
+    dishName: tray.dish_name ?? "",
+    dishId: tray.dish_id ?? "",
+    trayId: tray.tray_id ?? "",
     batchSize,
     cookTimeMinutes: cookTime,
     minutesToEmpty: minutesToEmpty ?? cookTime,
+    recommendedWeightKg: Math.round(recommendedWeightKg * 10) / 10,
     urgency,
     confidence,
   };
