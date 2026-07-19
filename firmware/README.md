@@ -217,7 +217,7 @@ From there, the [backend](../supabase/README.md) validates it, stores it, update
 
 The physical load-cell platform — wiring four 50 kg cells into a Wheatstone bridge and reading them with an HX711 on an ESP32 — was built with reference to this excellent tutorial. Full credit to the creator for the clear walkthrough that helped us get our hardware working:
 
-> 📺 **[Building a load-cell scale with ESP32 + HX711](https://youtu.be/LIuf2egMioA)** — by **_[creator / channel name — to confirm]_**
+> 📺 **[Building a load-cell scale with ESP32 + HX711](https://youtu.be/LIuf2egMioA)** — by **Indrek**
 
 We adapted the approach for a buffet-tray form factor (3D-printed corner brackets, kitchen-grade stainless hardware) and built the firmware, calibration workflow, offline buffering, and cloud pipeline on top of it.
 
